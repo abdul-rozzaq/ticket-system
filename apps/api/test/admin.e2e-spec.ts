@@ -288,6 +288,35 @@ describe('admin API: audit, SLA policies, statistics (e2e)', () => {
     });
   });
 
+  describe('settings audit', () => {
+    it('records what changed (and ignores unknown keys / no-op writes)', async () => {
+      await ctx
+        .http()
+        .put('/api/v1/settings')
+        .set(bearer(admin))
+        .send({ 'intake.debounceSeconds': 40, 'intake.minChars': 6, 'no.such.key': 1 })
+        .expect(200);
+      const rows = await ctx.prisma.auditLog.findMany({ where: { action: 'settings.update' } });
+      expect(rows).toHaveLength(1);
+      expect(rows[0].meta).toEqual({
+        changed: { 'intake.debounceSeconds': { from: 25, to: 40 } }, // minChars equals its default: not a change
+      });
+      await ctx
+        .http()
+        .put('/api/v1/settings')
+        .set(bearer(admin))
+        .send({ 'intake.debounceSeconds': 40 })
+        .expect(200);
+      expect(await ctx.prisma.auditLog.count({ where: { action: 'settings.update' } })).toBe(1);
+      await ctx
+        .http()
+        .put('/api/v1/settings')
+        .set(bearer(staff.token))
+        .send({ 'intake.minChars': 1 })
+        .expect(403);
+    });
+  });
+
   describe('PATCH semantics', () => {
     it('a partial group update does not reset omitted fields; activating confirms a pending group', async () => {
       await ctx

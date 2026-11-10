@@ -4,7 +4,9 @@ import { Prisma } from '@prisma/client';
 import { DEFAULT_SETTINGS } from '@tp/shared';
 import { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service';
-import { Roles } from '../auth/guards';
+import type { User } from '@prisma/client';
+import { CurrentUser, Roles } from '../auth/guards';
+import { AuditService } from '../audit/audit.service';
 import { ZodPipe } from '../common/http';
 
 export type SettingKey = keyof typeof DEFAULT_SETTINGS;
@@ -38,7 +40,10 @@ const updateSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boo
 @Roles('ADMIN')
 @Controller('settings')
 export class SettingsController {
-  constructor(private readonly settings: SettingsService) {}
+  constructor(
+    private readonly settings: SettingsService,
+    private readonly audit: AuditService,
+  ) {}
 
   @Get()
   all() {
@@ -47,12 +52,21 @@ export class SettingsController {
 
   /** Only known keys are accepted, with the same primitive type as their default. */
   @Put()
-  async update(@Body(new ZodPipe(updateSchema)) body: z.infer<typeof updateSchema>) {
+  async update(
+    @Body(new ZodPipe(updateSchema)) body: z.infer<typeof updateSchema>,
+    @CurrentUser() actor: User,
+  ) {
+    const before = await this.settings.getAll();
+    const changed: Record<string, { from: unknown; to: unknown }> = {};
     for (const [k, v] of Object.entries(body)) {
       const def = (DEFAULT_SETTINGS as Record<string, unknown>)[k];
       if (def === undefined || typeof def !== typeof v) continue;
+      if (before[k] !== v) changed[k] = { from: before[k], to: v };
       await this.settings.set(k, v);
     }
+    // none of these settings is a secret (those live encrypted in their own tables), so values are safe to log
+    if (Object.keys(changed).length)
+      await this.audit.log({ actorId: actor.id, action: 'settings.update', meta: { changed } });
     return this.settings.getAll();
   }
 }

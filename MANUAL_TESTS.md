@@ -17,7 +17,7 @@ automated tests (which use fakes). Run these before trusting the corresponding f
 
 ## 1. Userbot login (admin panel flow → API commands)
 
-The admin panel does not exist yet; use Swagger (`/docs`) with an admin token or `curl`.
+Use the admin panel (Telegram -> Userbot) or, equivalently, Swagger (`/docs`) with an admin token or `curl`.
 
 | #   | Step                                                                                          | Expected                                                                                                                    |
 | --- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
@@ -177,3 +177,25 @@ mock KB only. Start with a small real KB (10-30 articles you trust) and a throwa
 | 9.11 | Close tickets with real solution notes                                                                               | A DRAFT article appears (AI or extractive); check it contains **no customer names, phone numbers, links or secrets** (the AI is told to generalise, extractive only masks secret patterns)           |
 | 9.12 | Approve / edit / reject drafts in the queue (`GET /kb?status=DRAFT`)                                                 | Only approved articles answer questions; an edited approved article answers with the new text immediately; rejected ones vanish from every search path                                               |
 | 9.13 | Exhaust the monthly budget                                                                                           | Drafts fall back to the article text (`mode: extractive`, warning), embedding calls stop, tickets are still created                                                                                  |
+
+## 10. Admin panel (browser)
+
+Prerequisites: API + panel running, one admin, one staff user, 2 client groups, a few tickets.
+
+| #     | Step                                                                                                  | Expected                                                                                                                 |
+| ----- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 10.1  | Open the panel while logged out                                                                       | Redirect to `/login`                                                                                                     |
+| 10.2  | Log in as a new user                                                                                  | Asked for a new password (10+ chars), then lands on the dashboard                                                        |
+| 10.3  | As STAFF open `/users`, `/board`, `/settings`                                                         | Redirected to the dashboard; nav shows only dashboard, my tickets, templates, KB; KB has no edit buttons                 |
+| 10.4  | In DevTools, `document.cookie`                                                                        | No session cookie visible (httpOnly)                                                                                     |
+| 10.5  | Wait until the access token expires (15 min) and click around                                         | No logout; exactly one refresh happens (network tab), pages keep working                                                 |
+| 10.6  | Drag a card to a staff column / Kutilmoqda / Yopilgan; drag to Kechikkan                              | Assigned / waiting / asks for the solution note; Kechikkan refuses                                                       |
+| 10.7  | Ticket page: take, assign with handover note, wait, internal note, close, merge into another number   | Each shows in the events list and in the audit log; the Telegram card (if the bot runs) is edited                        |
+| 10.8  | Client groups: edit only the company name of an inactive group                                        | It stays inactive and keeps language and system                                                                          |
+| 10.9  | Groups: "Userbot orqali qidirish" with a running userbot, then "Faollashtirish" on a discovered group | Group appears under "Tasdiqlanmagan", becomes confirmed and active                                                       |
+| 10.10 | Users: create, reset password, generate a Telegram link code, deactivate                              | New user must change password at first login; the code is shown once; deactivated user is logged out on the next request |
+| 10.11 | Settings: change a value, reload                                                                      | Value persists; audit log has `settings.update` with from/to                                                             |
+| 10.12 | Telegram -> Papkalar: preview, then sync (real account)                                               | Plan matches reality; folders appear in Telegram; second sync reports no changes                                         |
+| 10.13 | AI: save provider + key, "Ulanishni tekshirish"                                                       | Success toast with latency; the key is never shown again (only the last 4 characters)                                    |
+| 10.14 | Statistics: export CSV, open it in Excel                                                              | Uzbek letters correct; a summary starting with `=` is shown as text, not evaluated                                       |
+| 10.15 | Phone-sized window                                                                                    | Menu collapses behind the burger button; tables scroll inside their card                                                 |

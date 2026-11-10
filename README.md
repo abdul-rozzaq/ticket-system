@@ -8,7 +8,7 @@ what has been verified. Design decisions are in [PLAN.md](PLAN.md); features in 
 apps/api          NestJS + Prisma + PostgreSQL(pgvector)   <- implemented (auth, users, groups, tickets, intake, AI service, userbot outbox)
 apps/userbot      GramJS worker                            <- worker/tests done; real MTProto adapter UNVERIFIED
 apps/bot          grammY internal bot                      <- worker/tests done; Telegram gateway UNVERIFIED
-apps/admin        Next.js admin panel                      <- not started
+apps/admin        Next.js admin panel (BFF, uz UI)         <- done (see STATUS.md)
 apps/extension    Chrome MV3 extension                     <- prototype still in ../extension, not yet moved
 packages/shared   zod schemas, masking, peer ids, i18n, SLA
 infra/            docker-compose, Dockerfile.api, .env.example
@@ -53,6 +53,17 @@ pnpm --filter @tp/api dev
 ```
 
 Swagger: `http://localhost:3000/docs`. The seeded admin must change its password at first login.
+
+### Admin panel
+
+```bash
+pnpm --filter @tp/shared build
+pnpm --filter @tp/admin dev          # http://localhost:3001  (API_URL defaults to http://localhost:3000)
+```
+
+Log in with the seeded admin; the panel asks for a new password first. Environment: `API_URL` (server-side URL of the API),
+`COOKIE_SECURE=true` when served over HTTPS. The browser only ever talks to the panel origin; session tokens live in httpOnly
+cookies and `internal/*` API routes are not reachable through the panel. Docker: `infra/Dockerfile.admin`, service `admin` in the compose file.
 
 ## Environment variables (API)
 

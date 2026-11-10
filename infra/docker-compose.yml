@@ -1,5 +1,4 @@
 # TP Ticket System. `docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build`
-# The admin panel is added when it is implemented (see STATUS.md).
 services:
   postgres:
     image: pgvector/pgvector:pg17
@@ -94,6 +93,21 @@ services:
       BOT_WEBHOOK_URL: ${BOT_WEBHOOK_URL:-}
       BOT_WEBHOOK_SECRET: ${BOT_WEBHOOK_SECRET:-}
       BOT_FAKE: ${BOT_FAKE:-false}
+
+  admin:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.admin
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      API_URL: http://api:3000
+      # true when the panel is served over HTTPS (Secure session cookies)
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    ports:
+      - '${ADMIN_PORT:-3001}:3001'
 
 volumes:
   pgdata:
