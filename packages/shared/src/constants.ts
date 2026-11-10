@@ -56,6 +56,11 @@ export const DEFAULT_SETTINGS = {
   'intake.debounceSeconds': 25,
   'intake.confidenceThreshold': 0.6,
   'intake.minChars': 6,
+  'intake.contextMessages': 5,
+  /** Comma-separated extras to the built-in lists (matched case-insensitively). */
+  'intake.urgentKeywords': '',
+  'intake.stopWords': '',
+  'assignment.strategy': 'MANUAL',
   'commands.deleteAfterUse': true,
   'reactions.enabled': true,
   'activity.pingEnabled': true,

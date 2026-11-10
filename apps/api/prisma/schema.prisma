@@ -377,8 +377,39 @@ model FilteredMessage {
 
   clientGroup ClientGroup @relation(fields: [clientGroupId], references: [id], onDelete: Cascade)
 
+  @@unique([clientGroupId, telegramMessageId])
   @@index([clientGroupId, createdAt])
   @@index([createdAt])
+}
+
+/// Messages waiting for the debounce window to pass before AI classification (one buffer per client group).
+model IntakeBuffer {
+  id            String   @id @default(uuid()) @db.Uuid
+  clientGroupId String   @unique @db.Uuid
+  chatId        String
+  /// [{ messageId: string|null, senderId: string|null, senderName: string|null, text: string, at: ISO }]
+  items         Json     @default("[]")
+  urgent        Boolean  @default(false)
+  firstAt       DateTime @default(now())
+  lastAt        DateTime @default(now())
+
+  @@index([lastAt])
+}
+
+/// Outbox of commands for the userbot process (it long-polls this through the API; it has no DB access).
+model UserbotCommand {
+  id        String    @id @default(uuid()) @db.Uuid
+  /// LOGIN_SEND_CODE | LOGIN_SUBMIT_CODE | LOGIN_SUBMIT_PASSWORD | LOGOUT | DELETE_MESSAGES | DISCOVER_DIALOGS
+  type      String
+  payload   Json      @default("{}")
+  /// PENDING | CLAIMED | DONE | FAILED
+  status    String    @default("PENDING")
+  result    Json?
+  createdAt DateTime  @default(now())
+  claimedAt DateTime?
+  doneAt    DateTime?
+
+  @@index([status, createdAt])
 }
 
 model TelegramFolderState {

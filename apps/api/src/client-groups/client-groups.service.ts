@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { clientGroupSchema, normalizePeerId, type PeerRef } from '@tp/shared';
+import { clientGroupSchema, normalizePeerId, parseStoredPeer, type PeerRef } from '@tp/shared';
 import type { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -39,6 +39,13 @@ export class ClientGroupsService {
   /** Resolve a chat id as seen in Telegram Web (any format) or MTProto to a known group. */
   async findByChatId(raw: string) {
     const ref = normalizePeerId(raw) ?? null;
+    if (!ref) return null;
+    return this.prisma.clientGroup.findFirst({ where: { telegramChatId: { in: candidateKeys(ref) } } });
+  }
+
+  /** Resolve either a canonical stored key ("c:123", sent by the userbot) or a Web-style id. */
+  async findByAnyId(raw: string) {
+    const ref = parseStoredPeer(raw) ?? normalizePeerId(raw);
     if (!ref) return null;
     return this.prisma.clientGroup.findFirst({ where: { telegramChatId: { in: candidateKeys(ref) } } });
   }
@@ -83,7 +90,7 @@ export class ClientGroupsService {
   async importDiscovered(items: Array<{ telegramChatId: string; title: string }>) {
     let created = 0;
     for (const it of items) {
-      const ref = normalizePeerId(it.telegramChatId);
+      const ref = parseStoredPeer(it.telegramChatId) ?? normalizePeerId(it.telegramChatId);
       if (!ref) continue;
       const exists = await this.prisma.clientGroup.findFirst({ where: { telegramChatId: { in: candidateKeys(ref) } } });
       if (exists) continue;

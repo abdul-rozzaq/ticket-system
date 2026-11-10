@@ -25,6 +25,8 @@ export const envSchema = z.object({
   DEMO_MODE: bool.default(false),
   /** Shared secret for service-to-service calls (userbot, bot). */
   SERVICE_TOKEN: z.string().min(16).optional(),
+  /** How often the intake debounce buffers are checked (ms). 0 disables the timer (tests call processDue directly). */
+  INTAKE_POLL_MS: z.coerce.number().int().min(0).default(5000),
 });
 
 export type Env = z.infer<typeof envSchema>;

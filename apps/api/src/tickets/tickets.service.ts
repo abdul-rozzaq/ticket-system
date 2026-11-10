@@ -175,14 +175,7 @@ export class TicketsService {
       if (ticket.status === 'CLOSED' || m.isInternalNote) return;
 
       if (m.direction === 'OUT' && !ticket.firstResponseAt) {
-        // Stamp atomically: only one concurrent outgoing message becomes "the first response".
-        const r = await tx.ticket.updateMany({ where: { id: ticketId, firstResponseAt: null }, data: { firstResponseAt: new Date() } });
-        if (r.count === 1) {
-          firstResponse = true;
-          const resolutionMin = await this.settings.get('sla.resolutionMinutes');
-          await tx.ticket.update({ where: { id: ticketId }, data: { slaDeadline: new Date(ticket.openedAt.getTime() + resolutionMin * 60_000) } });
-          await this.ev(tx, ticketId, 'FIRST_RESPONSE', m.answeredById ?? null, { answeredConfidence: m.answeredConfidence ?? null });
-        }
+        firstResponse = await this.stampFirstResponse(tx, ticket, m.answeredById ?? null, { answeredConfidence: m.answeredConfidence ?? null });
       }
       if (m.direction === 'IN' && ticket.status === 'WAITING_CLIENT') {
         const next: TicketStatus = ticket.assigneeId ? 'IN_PROGRESS' : 'NEW';
@@ -192,6 +185,26 @@ export class TicketsService {
     });
     this.events.emit('ticket.message', { ticketId, direction: m.direction, isFirstResponse: firstResponse });
     return { duplicate: false, firstResponse };
+  }
+
+  /**
+   * Atomically stamps firstResponseAt (only one concurrent caller wins) and moves the SLA deadline from
+   * "first response" to "resolution". Returns true for the winner.
+   */
+  private async stampFirstResponse(tx: Tx, ticket: Ticket, actorId: string | null, payload: Record<string, unknown>): Promise<boolean> {
+    const r = await tx.ticket.updateMany({ where: { id: ticket.id, firstResponseAt: null }, data: { firstResponseAt: new Date() } });
+    if (r.count !== 1) return false;
+    const resolutionMin = await this.settings.get('sla.resolutionMinutes');
+    await tx.ticket.update({ where: { id: ticket.id }, data: { slaDeadline: new Date(ticket.openedAt.getTime() + resolutionMin * 60_000) } });
+    await this.ev(tx, ticket.id, 'FIRST_RESPONSE', actorId, payload as Prisma.InputJsonValue);
+    return true;
+  }
+
+  /** 👀 reaction by the TP account counts as "seen / first response" (best effort). */
+  async markSeen(ticketId: string, actorId: string | null): Promise<boolean> {
+    const ticket = await this.requireTicket(ticketId);
+    if (ticket.status === 'CLOSED' || ticket.firstResponseAt) return false;
+    return this.prisma.$transaction((tx) => this.stampFirstResponse(tx, ticket, actorId, { via: 'reaction' }));
   }
 
   // ------------------------------------------------------------------ assignment & status
@@ -303,7 +316,7 @@ export class TicketsService {
     return updated;
   }
 
-  async addNote(ticketId: string, text: string, actorId: string, chatId?: string): Promise<void> {
+  async addNote(ticketId: string, text: string, actorId: string | null, chatId?: string): Promise<void> {
     const ticket = await this.requireTicket(ticketId);
     await this.prisma.$transaction(async (tx) => {
       const group = await tx.clientGroup.findUniqueOrThrow({ where: { id: ticket.clientGroupId } });

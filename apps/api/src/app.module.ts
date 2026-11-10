@@ -11,6 +11,8 @@ import { SettingsModule } from './settings/settings.service';
 import { TicketsModule } from './tickets/tickets.module';
 import { TemplatesModule } from './templates/templates.module';
 import { RealtimeModule } from './realtime/realtime.gateway';
+import { AiModule } from './ai/ai.controller';
+import { IntakeModule } from './intake/intake.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -27,6 +29,8 @@ import { HealthController } from './health/health.controller';
     TicketsModule,
     TemplatesModule,
     RealtimeModule,
+    AiModule,
+    IntakeModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

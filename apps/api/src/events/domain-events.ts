@@ -17,6 +17,7 @@ export interface DomainEventMap {
   'ticket.updated': TicketSnapshot & { change: string; actorId: string | null };
   'ticket.assigned': TicketSnapshot & { previousAssigneeId: string | null; actorId: string | null; handoverNote?: string };
   'ticket.closed': TicketSnapshot & { solutionNote: string | null; actorId: string | null };
+  'ai.requested': { ticketId: string; chatId: string; actorId: string | null; messageId: string | null };
   'ticket.message': { ticketId: string; direction: 'IN' | 'OUT'; isFirstResponse: boolean };
 }
 

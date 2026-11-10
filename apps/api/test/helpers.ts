@@ -7,6 +7,7 @@ import { UsersService } from '../src/users/users.service';
 import { setupApp } from '../src/setup';
 
 export const ADMIN = { username: 'admin', password: 'Admin-pass-12345' };
+export const SERVICE_TOKEN = 'test-service-token-1234567890';
 
 export function setTestEnv() {
   Object.assign(process.env, {
@@ -18,6 +19,8 @@ export function setTestEnv() {
     SEED_ADMIN_PASSWORD: ADMIN.password,
     LOCKOUT_MAX_FAILURES: '5',
     LOGIN_RATE_LIMIT: '1000',
+    SERVICE_TOKEN: SERVICE_TOKEN,
+    INTAKE_POLL_MS: '0', // tests drive processDue() explicitly
   });
 }
 
@@ -27,13 +30,17 @@ export interface TestCtx {
   http: () => ReturnType<typeof request>;
   /** Wipe all rows and re-run the admin seed. */
   reset: () => Promise<void>;
+  svc: () => Record<string, string>;
   login: (username: string, password: string) => Promise<{ accessToken: string; refreshToken: string; body: any; status: number }>;
 }
 
-export async function createTestApp(): Promise<TestCtx> {
+export async function createTestApp(opts: { classifier?: unknown } = {}): Promise<TestCtx> {
   setTestEnv();
   const { AppModule } = await import('../src/app.module');
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+  const { IntakeClassifier } = await import('../src/ai/ai.service');
+  let builder = Test.createTestingModule({ imports: [AppModule] });
+  if (opts.classifier) builder = builder.overrideProvider(IntakeClassifier).useValue(opts.classifier);
+  const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication();
   setupApp(app);
   await app.init();
@@ -43,9 +50,13 @@ export async function createTestApp(): Promise<TestCtx> {
     app,
     prisma,
     http,
+    svc: () => ({ 'x-service-token': SERVICE_TOKEN }),
     async reset() {
       await prisma.$executeRawUnsafe(
-        `TRUNCATE "TicketEvent","TicketMessage","Reminder","Ticket","FilteredMessage","ClientGroup","SlaPolicy","StaffActivity","RefreshToken","LoginAttempt","AuditLog","Template","KbChunk","KbArticle","User" RESTART IDENTITY CASCADE`,
+        `TRUNCATE "TicketEvent","TicketMessage","Reminder","Ticket","FilteredMessage","ClientGroup","SlaPolicy","StaffActivity","RefreshToken","LoginAttempt","AuditLog","Template","KbChunk","KbArticle","IntakeBuffer","UserbotCommand","UserbotSession","AiUsageLog","AiProvider","Setting","User" RESTART IDENTITY CASCADE`,
+      );
+      await prisma.$executeRawUnsafe(
+        `UPDATE "AiSettings" SET "providerId" = NULL, "classifyModel" = '', "draftModel" = '', "summaryModel" = '', "embeddingModel" = '', "prompts" = '{}', "monthlyBudgetUsd" = 50, "hardStop" = true WHERE id = 1`,
       );
       await app.get(UsersService).onApplicationBootstrap();
     },
