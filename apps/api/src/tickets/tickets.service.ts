@@ -85,8 +85,7 @@ export class TicketsService {
     });
     if (!group) throw new AppError(HttpStatus.NOT_FOUND, 'NOT_FOUND', 'Guruh topilmadi');
 
-    const firstResponseMin =
-      group.slaPolicy?.firstResponseMinutes ?? (await this.settings.get('sla.firstResponseMinutes'));
+    const firstResponseMin = (await this.slaFor(group.id)).firstResponseMinutes;
     const now = new Date();
     const previous = await this.prisma.ticket.findFirst({
       where: { clientGroupId: group.id, status: 'CLOSED' },
@@ -147,6 +146,19 @@ export class TicketsService {
       });
       return { ticket: open, created: false };
     }
+  }
+
+  /** SLA minutes for a client group: its own policy, else the default policy, else the global settings. */
+  async slaFor(clientGroupId: string): Promise<{ firstResponseMinutes: number; resolutionMinutes: number }> {
+    const g = await this.prisma.clientGroup.findUnique({
+      where: { id: clientGroupId },
+      include: { slaPolicy: true },
+    });
+    const p = g?.slaPolicy ?? (await this.prisma.slaPolicy.findFirst({ where: { isDefault: true } }));
+    return {
+      firstResponseMinutes: p?.firstResponseMinutes ?? (await this.settings.get('sla.firstResponseMinutes')),
+      resolutionMinutes: p?.resolutionMinutes ?? (await this.settings.get('sla.resolutionMinutes')),
+    };
   }
 
   // ------------------------------------------------------------------ messages
@@ -228,7 +240,7 @@ export class TicketsService {
       data: { firstResponseAt: new Date() },
     });
     if (r.count !== 1) return false;
-    const resolutionMin = await this.settings.get('sla.resolutionMinutes');
+    const resolutionMin = (await this.slaFor(ticket.clientGroupId)).resolutionMinutes;
     await tx.ticket.update({
       where: { id: ticket.id },
       data: { slaDeadline: new Date(ticket.openedAt.getTime() + resolutionMin * 60_000) },

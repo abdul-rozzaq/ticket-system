@@ -1,6 +1,20 @@
 import { z } from 'zod';
 import { ASSIGNMENT_STRATEGIES, ROLES, SYSTEM_TYPES, TICKET_STATUSES, URGENCIES } from './constants';
 
+/**
+ * Schema for PATCH bodies: every field optional and WITHOUT its default. Zod's own `.partial()` keeps `.default()`
+ * values, so `PATCH {title}` would silently reset `isActive`, `language`, `tags`, ... to their defaults.
+ */
+export function patchOf<T extends z.ZodObject<z.ZodRawShape>>(schema: T) {
+  const shape: Record<string, z.ZodType> = {};
+  for (const [k, v] of Object.entries(schema.shape)) {
+    shape[k] = (
+      (v as z.ZodType) instanceof z.ZodDefault ? (v as z.ZodDefault<z.ZodType>).unwrap() : (v as z.ZodType)
+    ).optional();
+  }
+  return z.object(shape) as unknown as z.ZodType<Partial<z.output<T>>>;
+}
+
 export const passwordSchema = z.string().min(10).max(128);
 export const usernameSchema = z
   .string()
@@ -55,9 +69,11 @@ export const clientGroupSchema = z.object({
   systemType: z.enum(SYSTEM_TYPES).default('OTHER'),
   language: z.enum(['uz', 'ru']).default('uz'),
   defaultOwnerId: z.string().uuid().nullable().optional(),
+  slaPolicyId: z.string().uuid().nullable().optional(),
   assignmentStrategy: z.enum(ASSIGNMENT_STRATEGIES).nullable().optional(),
   isActive: z.boolean().default(true),
 });
+export const clientGroupPatchSchema = patchOf(clientGroupSchema);
 
 export const ticketFilterSchema = z.object({
   status: z.enum(TICKET_STATUSES).optional(),
@@ -92,4 +108,11 @@ export type AiClassification = z.infer<typeof aiClassificationSchema>;
 export const aiDraftRequestSchema = z.object({
   chatId: z.string().min(1),
   messageId: z.string().optional(),
+});
+
+export const slaPolicySchema = z.object({
+  name: z.string().min(1).max(60),
+  firstResponseMinutes: z.number().int().min(1).max(10080),
+  resolutionMinutes: z.number().int().min(1).max(43200),
+  isDefault: z.boolean().default(false),
 });

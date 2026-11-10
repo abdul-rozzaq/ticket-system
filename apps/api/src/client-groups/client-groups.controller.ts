@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { User } from '@prisma/client';
-import { clientGroupSchema } from '@tp/shared';
+import { clientGroupPatchSchema, clientGroupSchema } from '@tp/shared';
 import type { z } from 'zod';
 import { CurrentUser, Roles } from '../auth/guards';
 import { AppError, ZodPipe } from '../common/http';
@@ -42,7 +42,7 @@ export class ClientGroupsController {
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body(new ZodPipe(clientGroupSchema.partial())) body: Partial<z.infer<typeof clientGroupSchema>>,
+    @Body(new ZodPipe(clientGroupPatchSchema)) body: Partial<z.infer<typeof clientGroupSchema>>,
     @CurrentUser() actor: User,
   ) {
     return this.groups.update(id, body, actor.id);

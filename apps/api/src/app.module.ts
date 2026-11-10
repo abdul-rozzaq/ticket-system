@@ -16,6 +16,7 @@ import { IntakeModule } from './intake/intake.module';
 import { BotModule } from './bot/bot.module';
 import { FunnelModule } from './funnel/funnel.module';
 import { KbModule } from './kb/kb.module';
+import { AdminModule } from './admin/admin.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -37,6 +38,7 @@ import { HealthController } from './health/health.controller';
     BotModule,
     FunnelModule,
     KbModule,
+    AdminModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

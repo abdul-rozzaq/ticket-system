@@ -74,6 +74,8 @@ export class ClientGroupsService {
 
   async update(id: string, input: Partial<GroupInput>, actorId: string) {
     const data: Prisma.ClientGroupUncheckedUpdateInput = { ...input };
+    // Activating a group from the panel is also the confirmation of a discovered (pending) one.
+    if (input.isActive === true) data.isConfirmed = true;
     if (input.telegramChatId) {
       const ref = normalizePeerId(input.telegramChatId);
       if (!ref) throw new AppError(HttpStatus.BAD_REQUEST, 'BAD_CHAT_ID', "Telegram chat ID noto'g'ri");

@@ -13,6 +13,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { patchOf } from '@tp/shared';
 import { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service';
 import { Roles } from '../auth/guards';
@@ -75,7 +76,7 @@ export class TemplatesController {
   @Patch(':id')
   update(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body(new ZodPipe(templateSchema.partial())) body: Partial<z.infer<typeof templateSchema>>,
+    @Body(new ZodPipe(patchOf(templateSchema))) body: Partial<z.infer<typeof templateSchema>>,
   ) {
     return this.svc.update(id, body);
   }

@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { Prisma, type KbArticle, type KbStatus } from '@prisma/client';
-import { SYSTEM_TYPES, chunkText } from '@tp/shared';
+import { SYSTEM_TYPES, chunkText, patchOf } from '@tp/shared';
 import { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
@@ -16,7 +16,7 @@ export const articleSchema = z.object({
   /** Articles written by an admin are APPROVED by default; set DRAFT to review later. */
   status: z.enum(['DRAFT', 'APPROVED']).default('APPROVED'),
 });
-export const articlePatchSchema = articleSchema.omit({ status: true }).partial();
+export const articlePatchSchema = patchOf(articleSchema.omit({ status: true }));
 export type ArticleInput = z.infer<typeof articleSchema>;
 
 export interface KbListFilter {
