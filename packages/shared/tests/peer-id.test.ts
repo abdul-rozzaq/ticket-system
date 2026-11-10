@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { fromMtproto, normalizePeerId, parseStoredPeer, samePeer, storePeer, toWebHash } from '../src/peer-id';
+import {
+  fromMtproto,
+  normalizePeerId,
+  parseStoredPeer,
+  samePeer,
+  storePeer,
+  toWebHash,
+} from '../src/peer-id';
 
 describe('normalizePeerId', () => {
   it.each([

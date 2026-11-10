@@ -38,7 +38,12 @@ export class AnthropicAdapter implements LlmAdapter {
   ) {}
 
   async complete(req: LlmRequest): Promise<LlmResult> {
-    const client = new Anthropic({ apiKey: this.apiKey, baseURL: this.baseUrl || undefined, timeout: req.timeoutMs, maxRetries: 0 });
+    const client = new Anthropic({
+      apiKey: this.apiKey,
+      baseURL: this.baseUrl || undefined,
+      timeout: req.timeoutMs,
+      maxRetries: 0,
+    });
     try {
       // temperature is deliberately NOT sent: current Claude models reject non-default sampling parameters.
       const params: Record<string, unknown> = {
@@ -59,7 +64,11 @@ export class AnthropicAdapter implements LlmAdapter {
     } catch (e) {
       if (e instanceof LlmError) throw e;
       if (e instanceof Anthropic.APIError) {
-        throw new LlmError(`Anthropic ${e.status ?? ''}: ${e.message}`.slice(0, 300), e.status, e.status === 429 || (e.status ?? 0) >= 500);
+        throw new LlmError(
+          `Anthropic ${e.status ?? ''}: ${e.message}`.slice(0, 300),
+          e.status,
+          e.status === 429 || (e.status ?? 0) >= 500,
+        );
       }
       // network / timeout
       throw new LlmError(`Anthropic request failed: ${String(e)}`.slice(0, 300), undefined, true);
@@ -99,7 +108,10 @@ export class OpenAiCompatAdapter implements LlmAdapter {
       const body = (await res.text().catch(() => '')).slice(0, 200);
       throw new LlmError(`${res.status}: ${body}`, res.status, res.status === 429 || res.status >= 500);
     }
-    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } };
+    const json = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
+    };
     return {
       text: String(json.choices?.[0]?.message?.content ?? '').trim(),
       inputTokens: json.usage?.prompt_tokens ?? 0,
@@ -109,7 +121,10 @@ export class OpenAiCompatAdapter implements LlmAdapter {
 }
 
 /** Retry transient failures with exponential backoff + jitter. */
-export async function withRetry<T>(fn: () => Promise<T>, opts: { retries: number; baseMs: number; sleep?: (ms: number) => Promise<void> }): Promise<T> {
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  opts: { retries: number; baseMs: number; sleep?: (ms: number) => Promise<void> },
+): Promise<T> {
   const sleep = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   let attempt = 0;
   for (;;) {

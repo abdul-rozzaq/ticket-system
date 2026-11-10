@@ -37,12 +37,18 @@ export function isWithinWorkingHours(wh: WorkingHours | null | undefined, now = 
 
 const eligible = (c: Candidate) => c.isActive && c.available;
 const byLoad = (a: Candidate, b: Candidate) =>
-  a.openCount - b.openCount || (a.lastAssignedAt?.getTime() ?? 0) - (b.lastAssignedAt?.getTime() ?? 0) || a.id.localeCompare(b.id);
+  a.openCount - b.openCount ||
+  (a.lastAssignedAt?.getTime() ?? 0) - (b.lastAssignedAt?.getTime() ?? 0) ||
+  a.id.localeCompare(b.id);
 const byLeastRecent = (a: Candidate, b: Candidate) =>
   (a.lastAssignedAt?.getTime() ?? 0) - (b.lastAssignedAt?.getTime() ?? 0) || a.id.localeCompare(b.id);
 
 /** Returns the user id to auto-assign, or null (= leave the ticket in "Yangi" for manual buttons). */
-export function pickAssignee(strategy: AssignmentStrategy, candidates: Candidate[], ctx: AssignContext = {}): string | null {
+export function pickAssignee(
+  strategy: AssignmentStrategy,
+  candidates: Candidate[],
+  ctx: AssignContext = {},
+): string | null {
   const pool = candidates.filter(eligible);
   switch (strategy) {
     case 'MANUAL':

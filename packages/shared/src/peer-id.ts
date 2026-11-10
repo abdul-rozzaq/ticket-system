@@ -16,7 +16,13 @@ export interface PeerRef {
   key: string;
 }
 
-const PREFIX: Record<PeerKind, string> = { user: 'u', chat: 'g', channel: 'c', ambiguous: 'x', username: 'n' };
+const PREFIX: Record<PeerKind, string> = {
+  user: 'u',
+  chat: 'g',
+  channel: 'c',
+  ambiguous: 'x',
+  username: 'n',
+};
 const mk = (kind: PeerKind, id: string): PeerRef => ({ kind, id, key: `${PREFIX[kind]}:${id}` });
 
 /** Parse a Telegram Web hash / Bot API style id ("-1001234567890", "-123", "777000", "@name"). Null if unparseable. */
@@ -71,6 +77,12 @@ export const storePeer = (p: PeerRef): string => p.key;
 export function parseStoredPeer(key: string): PeerRef | null {
   const m = /^([ugcxn]):(.+)$/.exec(key);
   if (!m) return null;
-  const kinds: Record<string, PeerKind> = { u: 'user', g: 'chat', c: 'channel', x: 'ambiguous', n: 'username' };
+  const kinds: Record<string, PeerKind> = {
+    u: 'user',
+    g: 'chat',
+    c: 'channel',
+    x: 'ambiguous',
+    n: 'username',
+  };
   return mk(kinds[m[1]], m[2]);
 }

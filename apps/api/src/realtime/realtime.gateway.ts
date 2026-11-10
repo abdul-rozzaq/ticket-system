@@ -25,7 +25,9 @@ export class RealtimeGateway implements OnGatewayConnection, OnModuleInit, OnMod
 
   async handleConnection(socket: Socket) {
     try {
-      const token = (socket.handshake.auth?.token as string | undefined) ?? socket.handshake.headers.authorization?.replace('Bearer ', '');
+      const token =
+        (socket.handshake.auth?.token as string | undefined) ??
+        socket.handshake.headers.authorization?.replace('Bearer ', '');
       if (!token) throw new Error('no token');
       const payload = await this.auth.verifyAccess(token);
       const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
@@ -43,10 +45,18 @@ export class RealtimeGateway implements OnGatewayConnection, OnModuleInit, OnMod
     this.unsubscribe = [
       this.events.on('ticket.created', (p) => to('staff', WS_EVENTS.ticketCreated, p)),
       this.events.on('ticket.updated', (p) => to('staff', WS_EVENTS.ticketUpdated, p)),
-      this.events.on('ticket.closed', (p) => to('staff', WS_EVENTS.ticketUpdated, { ...p, change: 'closed' })),
+      this.events.on('ticket.closed', (p) =>
+        to('staff', WS_EVENTS.ticketUpdated, { ...p, change: 'closed' }),
+      ),
       this.events.on('ticket.assigned', (p) => {
         to('staff', WS_EVENTS.ticketUpdated, { ...p, change: 'assigned' });
-        if (p.assigneeId) to(`user:${p.assigneeId}`, WS_EVENTS.reminder, { kind: 'assigned', ticketId: p.ticketId, number: p.number, handoverNote: p.handoverNote ?? null });
+        if (p.assigneeId)
+          to(`user:${p.assigneeId}`, WS_EVENTS.reminder, {
+            kind: 'assigned',
+            ticketId: p.ticketId,
+            number: p.number,
+            handoverNote: p.handoverNote ?? null,
+          });
       }),
     ];
     this.logger.log('realtime gateway ready');

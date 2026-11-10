@@ -8,7 +8,13 @@ import { TicketsService } from '../tickets/tickets.service';
 import { ClientGroupsService } from '../client-groups/client-groups.service';
 import { DomainEvents } from '../events/domain-events';
 import { IntakeClassifier } from '../ai/ai.service';
-import { hasUrgentKeyword, parseCommand, prefilter, DEFAULT_URGENT_KEYWORDS, type ParsedCommand } from '../domain/intake-rules';
+import {
+  hasUrgentKeyword,
+  parseCommand,
+  prefilter,
+  DEFAULT_URGENT_KEYWORDS,
+  type ParsedCommand,
+} from '../domain/intake-rules';
 import { AttributionService } from './attribution.service';
 import { OutboxService } from './outbox.service';
 
@@ -83,7 +89,10 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     if (this.env.INTAKE_POLL_MS > 0) {
-      this.timer = setInterval(() => void this.processDue().catch((e) => this.logger.warn(`processDue failed: ${String(e)}`)), this.env.INTAKE_POLL_MS);
+      this.timer = setInterval(
+        () => void this.processDue().catch((e) => this.logger.warn(`processDue failed: ${String(e)}`)),
+        this.env.INTAKE_POLL_MS,
+      );
       this.timer.unref();
     }
   }
@@ -95,14 +104,17 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
 
   async handleMessage(ev: IncomingMessage): Promise<MessageOutcome> {
     const group = await this.groups.findByAnyId(ev.chatId);
-    if (!group || !group.isActive) return { action: 'ignored', why: group ? 'group inactive' : 'unknown group' };
+    if (!group || !group.isActive)
+      return { action: 'ignored', why: group ? 'group inactive' : 'unknown group' };
     return ev.outgoing ? this.handleOutgoing(group, ev) : this.handleIncoming(group, ev);
   }
 
   // ---------------------------------------------------------------- incoming
 
   private async handleIncoming(group: ClientGroup, ev: IncomingMessage): Promise<MessageOutcome> {
-    const open = await this.prisma.ticket.findFirst({ where: { clientGroupId: group.id, status: { not: 'CLOSED' } } });
+    const open = await this.prisma.ticket.findFirst({
+      where: { clientGroupId: group.id, status: { not: 'CLOSED' } },
+    });
     if (open) {
       await this.tickets.attachMessage(open.id, group.telegramChatId, {
         telegramMessageId: BigInt(ev.messageId),
@@ -124,7 +136,10 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
       return { action: 'filtered', reason };
     }
 
-    const urgent = hasUrgentKeyword(ev.text, [...DEFAULT_URGENT_KEYWORDS, ...splitList(await this.settings.get('intake.urgentKeywords'))]);
+    const urgent = hasUrgentKeyword(ev.text, [
+      ...DEFAULT_URGENT_KEYWORDS,
+      ...splitList(await this.settings.get('intake.urgentKeywords')),
+    ]);
     await this.appendToBuffer(group, ev, urgent);
     if (urgent) {
       // Urgent messages skip the debounce window.
@@ -135,7 +150,13 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async appendToBuffer(group: ClientGroup, ev: IncomingMessage, urgent: boolean) {
-    const item: BufferItem = { messageId: ev.messageId, senderId: ev.senderId, senderName: ev.senderName, text: ev.text, at: ev.date };
+    const item: BufferItem = {
+      messageId: ev.messageId,
+      senderId: ev.senderId,
+      senderName: ev.senderName,
+      text: ev.text,
+      at: ev.date,
+    };
     // Atomic append: concurrent messages from the same group never overwrite each other.
     await this.prisma.$executeRaw`
       INSERT INTO "IntakeBuffer" ("id", "clientGroupId", "chatId", "items", "urgent", "firstAt", "lastAt")
@@ -186,7 +207,12 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
     return this.openTicket(group.id);
   }
 
-  private async runCommand(group: ClientGroup, cmd: ParsedCommand, ev: IncomingMessage, sentAt: Date): Promise<MessageOutcome> {
+  private async runCommand(
+    group: ClientGroup,
+    cmd: ParsedCommand,
+    ev: IncomingMessage,
+    sentAt: Date,
+  ): Promise<MessageOutcome> {
     const ticket = await this.ticketFor(group, ev.replyToMessageId);
     const who = await this.attribution.attribute(group.telegramChatId, sentAt);
     const actorId = who?.userId ?? null;
@@ -197,13 +223,19 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
           await this.tickets.close(ticket.id, actorId, cmd.arg || undefined);
           break;
         case 'wait':
-          if (ticket.status !== 'CLOSED' && ticket.status !== 'WAITING_CLIENT') await this.tickets.setStatus(ticket.id, 'WAITING_CLIENT', actorId);
+          if (ticket.status !== 'CLOSED' && ticket.status !== 'WAITING_CLIENT')
+            await this.tickets.setStatus(ticket.id, 'WAITING_CLIENT', actorId);
           break;
         case 'note':
           if (cmd.arg) await this.tickets.addNote(ticket.id, cmd.arg, actorId, group.telegramChatId);
           break;
         case 'ai':
-          this.events.emit('ai.requested', { ticketId: ticket.id, chatId: group.telegramChatId, actorId, messageId: ev.replyToMessageId });
+          this.events.emit('ai.requested', {
+            ticketId: ticket.id,
+            chatId: group.telegramChatId,
+            actorId,
+            messageId: ev.replyToMessageId,
+          });
           break;
       }
     }
@@ -242,7 +274,10 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
     try {
       const debounce = await this.settings.get('intake.debounceSeconds');
       const cutoff = new Date(now.getTime() - debounce * 1000);
-      const due = await this.prisma.intakeBuffer.findMany({ where: { lastAt: { lte: cutoff } }, select: { clientGroupId: true } });
+      const due = await this.prisma.intakeBuffer.findMany({
+        where: { lastAt: { lte: cutoff } },
+        select: { clientGroupId: true },
+      });
       let n = 0;
       for (const d of due) if (await this.processGroup(d.clientGroupId)) n++;
       return n;
@@ -260,7 +295,9 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
     if (!group) return false;
     // de-duplicate redelivered messages
     const seen = new Set<string>();
-    const items = rows[0].items.filter((i) => !i.messageId || (!seen.has(i.messageId) && seen.add(i.messageId)));
+    const items = rows[0].items.filter(
+      (i) => !i.messageId || (!seen.has(i.messageId) && seen.add(i.messageId)),
+    );
     try {
       await this.classifyAndOpen(group, items, rows[0].urgent);
     } catch (e) {
@@ -289,7 +326,9 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
       verdict = await this.classifier.classify(masked, context);
     } catch (e) {
       failure = String(e).slice(0, 200); // fail-open: any AI problem (not configured, budget, timeout, bad JSON) opens the ticket
-      this.logger.warn(`AI classification failed for group ${group.id}, opening ticket (fail-open): ${failure}`);
+      this.logger.warn(
+        `AI classification failed for group ${group.id}, opening ticket (fail-open): ${failure}`,
+      );
     }
 
     if (verdict && !verdict.isRequest && verdict.confidence >= threshold) {
@@ -304,7 +343,7 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
       senderName: first.senderName,
       senderTelegramId: first.senderId ? BigInt(first.senderId) : null,
       telegramMessageId: first.messageId ? BigInt(first.messageId) : null,
-      urgency: urgentKeyword ? 'HIGH' : verdict?.urgency ?? 'NORMAL',
+      urgency: urgentKeyword ? 'HIGH' : (verdict?.urgency ?? 'NORMAL'),
       category: verdict?.category,
       systemType: verdict && verdict.systemType !== 'OTHER' ? verdict.systemType : undefined,
       summary: verdict?.summary || undefined,
@@ -322,7 +361,11 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
       });
     }
     await this.prisma.ticketEvent.create({
-      data: { ticketId: ticket.id, type: 'AI_CLASSIFIED', payload: { verdict, failure, confident } as unknown as Prisma.InputJsonValue },
+      data: {
+        ticketId: ticket.id,
+        type: 'AI_CLASSIFIED',
+        payload: { verdict, failure, confident } as unknown as Prisma.InputJsonValue,
+      },
     });
   }
 
@@ -334,16 +377,35 @@ export class IntakeService implements OnModuleInit, OnModuleDestroy {
       orderBy: { sentAt: 'desc' },
       take: limit,
     });
-    return rows.reverse().map((m) => `${m.direction === 'OUT' ? 'staff' : 'customer'}: ${maskSensitive(m.text).text.slice(0, 300)}`);
+    return rows
+      .reverse()
+      .map(
+        (m) => `${m.direction === 'OUT' ? 'staff' : 'customer'}: ${maskSensitive(m.text).text.slice(0, 300)}`,
+      );
   }
 
   // ---------------------------------------------------------------- filtered messages
 
   private recordFiltered(clientGroupId: string, ev: IncomingMessage, reason: string) {
-    return this.recordFilteredItem(clientGroupId, { messageId: ev.messageId, senderId: ev.senderId, senderName: ev.senderName, text: ev.text, at: ev.date }, reason);
+    return this.recordFilteredItem(
+      clientGroupId,
+      {
+        messageId: ev.messageId,
+        senderId: ev.senderId,
+        senderName: ev.senderName,
+        text: ev.text,
+        at: ev.date,
+      },
+      reason,
+    );
   }
 
-  private async recordFilteredItem(clientGroupId: string, i: BufferItem, reason: string, verdict?: AiClassification) {
+  private async recordFilteredItem(
+    clientGroupId: string,
+    i: BufferItem,
+    reason: string,
+    verdict?: AiClassification,
+  ) {
     try {
       await this.prisma.filteredMessage.create({
         data: {

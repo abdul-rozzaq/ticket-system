@@ -66,7 +66,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         code = HttpStatus[status] ?? 'ERROR';
       } else {
         const b = body as Record<string, unknown>;
-        code = (b.code as string) ?? (HttpStatus[status] ?? 'ERROR');
+        code = (b.code as string) ?? HttpStatus[status] ?? 'ERROR';
         message = (Array.isArray(b.message) ? b.message.join('; ') : (b.message as string)) ?? message;
         details = b.details;
       }

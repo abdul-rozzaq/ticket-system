@@ -41,7 +41,11 @@ export class OutboxService {
         ) RETURNING *`;
       if (rows.length || Date.now() >= deadline) {
         const secretIds = rows.filter((r) => SECRET_TYPES.has(r.type)).map((r) => r.id);
-        if (secretIds.length) await this.prisma.userbotCommand.updateMany({ where: { id: { in: secretIds } }, data: { payload: { redacted: true } } });
+        if (secretIds.length)
+          await this.prisma.userbotCommand.updateMany({
+            where: { id: { in: secretIds } },
+            data: { payload: { redacted: true } },
+          });
         return rows;
       }
       await new Promise((r) => setTimeout(r, 700));
@@ -55,7 +59,11 @@ export class OutboxService {
     const { session, ...safeResult } = result as { session?: string } & Record<string, unknown>;
     await this.prisma.userbotCommand.update({
       where: { id },
-      data: { status: ok ? 'DONE' : 'FAILED', result: { ...safeResult, ...(error ? { error: error.slice(0, 300) } : {}) } as Prisma.InputJsonValue, doneAt: new Date() },
+      data: {
+        status: ok ? 'DONE' : 'FAILED',
+        result: { ...safeResult, ...(error ? { error: error.slice(0, 300) } : {}) } as Prisma.InputJsonValue,
+        doneAt: new Date(),
+      },
     });
 
     const row = await this.sessionRow();
@@ -66,7 +74,12 @@ export class OutboxService {
           break;
         case 'LOGIN_SUBMIT_CODE':
         case 'LOGIN_SUBMIT_PASSWORD':
-          if (session) await this.setSession(row.id, { status: 'CONNECTED', sessionEnc: this.crypto.encrypt(session), info: { phone: safeResult.phone ?? null } });
+          if (session)
+            await this.setSession(row.id, {
+              status: 'CONNECTED',
+              sessionEnc: this.crypto.encrypt(session),
+              info: { phone: safeResult.phone ?? null },
+            });
           else if (safeResult.needPassword) await this.setSession(row.id, { status: 'NEED_PASSWORD' });
           break;
         case 'LOGOUT':
@@ -74,18 +87,39 @@ export class OutboxService {
           break;
       }
     } else if (cmd.type.startsWith('LOGIN_')) {
-      await this.setSession(row.id, { status: 'LOGIN_FAILED', info: { error: (error ?? 'failed').slice(0, 200) } });
+      await this.setSession(row.id, {
+        status: 'LOGIN_FAILED',
+        info: { error: (error ?? 'failed').slice(0, 200) },
+      });
     }
     return cmd.type;
   }
 
   async sessionRow() {
-    return (await this.prisma.userbotSession.findFirst()) ?? (await this.prisma.userbotSession.create({ data: {} }));
+    return (
+      (await this.prisma.userbotSession.findFirst()) ??
+      (await this.prisma.userbotSession.create({ data: {} }))
+    );
   }
 
-  private setSession(id: string, data: { status: string; sessionEnc?: string | null; info?: Record<string, unknown> }) {
+  private setSession(
+    id: string,
+    data: { status: string; sessionEnc?: string | null; info?: Record<string, unknown> },
+  ) {
     const { info, ...rest } = data;
-    return this.prisma.userbotSession.update({ where: { id }, data: { ...rest, ...(info ? { info: info as Prisma.InputJsonValue } : {}) } });
+    return this.prisma.userbotSession.update({
+      where: { id },
+      data: { ...rest, ...(info ? { info: info as Prisma.InputJsonValue } : {}) },
+    });
+  }
+
+  async storeSession(session: string, phone?: string) {
+    const row = await this.sessionRow();
+    await this.setSession(row.id, {
+      status: 'CONNECTED',
+      sessionEnc: this.crypto.encrypt(session),
+      info: { phone: phone ?? null },
+    });
   }
 
   async getSessionString(): Promise<string | null> {
@@ -103,7 +137,11 @@ export class OutboxService {
     const row = await this.sessionRow();
     await this.prisma.userbotSession.update({
       where: { id: row.id },
-      data: { lastActivityAt: new Date(), ...(state === 'CONNECTED' || state === 'DISCONNECTED' || state === 'ERROR' ? { status: state } : {}), info: { ...((row.info ?? {}) as object), ...info } as Prisma.InputJsonValue },
+      data: {
+        lastActivityAt: new Date(),
+        ...(state === 'CONNECTED' || state === 'DISCONNECTED' || state === 'ERROR' ? { status: state } : {}),
+        info: { ...((row.info ?? {}) as object), ...info } as Prisma.InputJsonValue,
+      },
     });
   }
 }

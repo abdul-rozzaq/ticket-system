@@ -5,12 +5,47 @@ export type FilterReason = 'EMPTY' | 'EMOJI_ONLY' | 'TOO_SHORT' | 'ACKNOWLEDGEME
 const ACKS = new Set(
   [
     // uz
-    'rahmat', 'rahmat katta', 'katta rahmat', 'raxmat', 'ok', 'okay', "xo'p", 'xop', "xo'p bo'ladi", 'tushunarli', 'yaxshi',
-    'zo\'r', 'bo\'ldi', 'tayyor', 'salom', 'assalomu alaykum', 'assalomu alaykum va rahmatullohi va barakatuh', 'hayrli kun', 'hayrli tong',
+    'rahmat',
+    'rahmat katta',
+    'katta rahmat',
+    'raxmat',
+    'ok',
+    'okay',
+    "xo'p",
+    'xop',
+    "xo'p bo'ladi",
+    'tushunarli',
+    'yaxshi',
+    "zo'r",
+    "bo'ldi",
+    'tayyor',
+    'salom',
+    'assalomu alaykum',
+    'assalomu alaykum va rahmatullohi va barakatuh',
+    'hayrli kun',
+    'hayrli tong',
     // ru
-    'спасибо', 'благодарю', 'ок', 'окей', 'хорошо', 'понятно', 'ладно', 'договорились', 'отлично', 'здравствуйте', 'привет', 'добрый день',
+    'спасибо',
+    'благодарю',
+    'ок',
+    'окей',
+    'хорошо',
+    'понятно',
+    'ладно',
+    'договорились',
+    'отлично',
+    'здравствуйте',
+    'привет',
+    'добрый день',
     // en
-    'thanks', 'thank you', 'thx', 'got it', 'great', 'cool', 'hi', 'hello',
+    'thanks',
+    'thank you',
+    'thx',
+    'got it',
+    'great',
+    'cool',
+    'hi',
+    'hello',
   ].map(normalise),
 );
 
@@ -65,7 +100,15 @@ export function parseCommand(text: string | null | undefined): ParsedCommand | n
 }
 
 /** Urgent keywords that skip the debounce and ping the on-duty person immediately (configurable list in settings). */
-export const DEFAULT_URGENT_KEYWORDS = ["to'xtab qoldi", 'toxtab qoldi', 'umuman ishlamayapti', 'срочно', 'не работает совсем', 'urgent', 'ishlamay qoldi'];
+export const DEFAULT_URGENT_KEYWORDS = [
+  "to'xtab qoldi",
+  'toxtab qoldi',
+  'umuman ishlamayapti',
+  'срочно',
+  'не работает совсем',
+  'urgent',
+  'ishlamay qoldi',
+];
 
 export function hasUrgentKeyword(text: string, keywords: string[] = DEFAULT_URGENT_KEYWORDS): boolean {
   const n = normalise(text);

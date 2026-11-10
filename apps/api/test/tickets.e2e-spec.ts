@@ -33,25 +33,37 @@ describe('tickets (e2e)', () => {
     admin = await adminToken(ctx);
     staff.length = 0;
     for (const n of ['ali', 'vali', 'sardor']) staff.push(await makeStaff(n));
-    const g = await ctx
-      .http()
-      .post('/api/v1/client-groups')
-      .set(bearer(admin))
-      .send({ telegramChatId: '-1001234567890', title: 'Orient Motors support', companyName: 'Orient Motors', systemType: 'AMOCRM' });
+    const g = await ctx.http().post('/api/v1/client-groups').set(bearer(admin)).send({
+      telegramChatId: '-1001234567890',
+      title: 'Orient Motors support',
+      companyName: 'Orient Motors',
+      systemType: 'AMOCRM',
+    });
     groupId = g.body.id;
   });
 
   const svc = () => ctx.app.get(TicketsService);
-  const open = (text = 'Webhook ulanmadi') => svc().createTicket({ clientGroupId: groupId, text, senderName: 'Jasur' });
+  const open = (text = 'Webhook ulanmadi') =>
+    svc().createTicket({ clientGroupId: groupId, text, senderName: 'Jasur' });
 
   it('normalises chat ids: WebA, WebK and by-chat lookup all find the same group', async () => {
     for (const id of ['-1001234567890', '-1234567890']) {
-      const r = await ctx.http().get(`/api/v1/client-groups/by-chat/${encodeURIComponent(id)}`).set(bearer(staff[0].token));
+      const r = await ctx
+        .http()
+        .get(`/api/v1/client-groups/by-chat/${encodeURIComponent(id)}`)
+        .set(bearer(staff[0].token));
       expect(r.status).toBe(200);
       expect(r.body.id).toBe(groupId);
     }
-    expect((await ctx.http().get('/api/v1/client-groups/by-chat/-1009999999999').set(bearer(staff[0].token))).status).toBe(404);
-    const dup = await ctx.http().post('/api/v1/client-groups').set(bearer(admin)).send({ telegramChatId: '-1001234567890', title: 'x', companyName: 'x' });
+    expect(
+      (await ctx.http().get('/api/v1/client-groups/by-chat/-1009999999999').set(bearer(staff[0].token)))
+        .status,
+    ).toBe(404);
+    const dup = await ctx
+      .http()
+      .post('/api/v1/client-groups')
+      .set(bearer(admin))
+      .send({ telegramChatId: '-1001234567890', title: 'x', companyName: 'x' });
     expect(dup.status).toBe(409);
   });
 
@@ -64,19 +76,41 @@ describe('tickets (e2e)', () => {
     expect(taken.status).toBe(200);
     expect(taken.body).toMatchObject({ status: 'IN_PROGRESS', assigneeId: staff[0].id });
 
-    const waiting = await ctx.http().post(`/api/v1/tickets/${ticket.id}/status`).set(bearer(staff[0].token)).send({ status: 'WAITING_CLIENT' });
+    const waiting = await ctx
+      .http()
+      .post(`/api/v1/tickets/${ticket.id}/status`)
+      .set(bearer(staff[0].token))
+      .send({ status: 'WAITING_CLIENT' });
     expect(waiting.body.status).toBe('WAITING_CLIENT');
 
     // client writes again -> back to IN_PROGRESS (assigned)
-    await svc().attachMessage(ticket.id, '-1001234567890', { direction: 'IN', text: 'Skrinshot yubordim', telegramMessageId: 5n });
-    expect((await ctx.prisma.ticket.findUniqueOrThrow({ where: { id: ticket.id } })).status).toBe('IN_PROGRESS');
+    await svc().attachMessage(ticket.id, '-1001234567890', {
+      direction: 'IN',
+      text: 'Skrinshot yubordim',
+      telegramMessageId: 5n,
+    });
+    expect((await ctx.prisma.ticket.findUniqueOrThrow({ where: { id: ticket.id } })).status).toBe(
+      'IN_PROGRESS',
+    );
 
-    const closed = await ctx.http().post(`/api/v1/tickets/${ticket.id}/close`).set(bearer(staff[0].token)).send({ solutionNote: 'https qilindi' });
-    expect(closed.body).toMatchObject({ status: 'CLOSED', solutionNote: 'https qilindi', closedById: staff[0].id });
+    const closed = await ctx
+      .http()
+      .post(`/api/v1/tickets/${ticket.id}/close`)
+      .set(bearer(staff[0].token))
+      .send({ solutionNote: 'https qilindi' });
+    expect(closed.body).toMatchObject({
+      status: 'CLOSED',
+      solutionNote: 'https qilindi',
+      closedById: staff[0].id,
+    });
     expect(closed.body.closedAt).toBeTruthy();
 
     // closed tickets are never reopened
-    const reopen = await ctx.http().post(`/api/v1/tickets/${ticket.id}/status`).set(bearer(staff[0].token)).send({ status: 'IN_PROGRESS' });
+    const reopen = await ctx
+      .http()
+      .post(`/api/v1/tickets/${ticket.id}/status`)
+      .set(bearer(staff[0].token))
+      .send({ status: 'IN_PROGRESS' });
     expect(reopen.status).toBe(409);
 
     const next = await open('Yana muammo');
@@ -113,14 +147,20 @@ describe('tickets (e2e)', () => {
 
     const row = await ctx.prisma.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
     expect([...winnerIds][0]).toBe(row.assigneeId);
-    const assignedEvents = await ctx.prisma.ticketEvent.count({ where: { ticketId: ticket.id, type: 'ASSIGNED' } });
+    const assignedEvents = await ctx.prisma.ticketEvent.count({
+      where: { ticketId: ticket.id, type: 'ASSIGNED' },
+    });
     expect(assignedEvents).toBe(1); // exactly one assignment was recorded
   });
 
   it('repeat "take" by the owner is an idempotent success; others get ALREADY_TAKEN with the owner name', async () => {
     const { ticket } = await open();
-    expect((await ctx.http().post(`/api/v1/tickets/${ticket.id}/take`).set(bearer(staff[0].token))).status).toBe(200);
-    expect((await ctx.http().post(`/api/v1/tickets/${ticket.id}/take`).set(bearer(staff[0].token))).status).toBe(200);
+    expect(
+      (await ctx.http().post(`/api/v1/tickets/${ticket.id}/take`).set(bearer(staff[0].token))).status,
+    ).toBe(200);
+    expect(
+      (await ctx.http().post(`/api/v1/tickets/${ticket.id}/take`).set(bearer(staff[0].token))).status,
+    ).toBe(200);
     const other = await ctx.http().post(`/api/v1/tickets/${ticket.id}/take`).set(bearer(staff[1].token));
     expect(other.status).toBe(409);
     expect(other.body.message).toContain('ali');
@@ -139,43 +179,86 @@ describe('tickets (e2e)', () => {
       .send({ assigneeId: staff[1].id, handoverNote: 'Mijoz Bitrix ham ishlatadi' });
     expect(r.body.assigneeId).toBe(staff[1].id);
     expect(seen).toHaveLength(1);
-    expect(seen[0]).toMatchObject({ previousAssigneeId: staff[0].id, handoverNote: 'Mijoz Bitrix ham ishlatadi' });
-    const ev = await ctx.prisma.ticketEvent.findFirstOrThrow({ where: { ticketId: ticket.id, type: 'REASSIGNED' } });
+    expect(seen[0]).toMatchObject({
+      previousAssigneeId: staff[0].id,
+      handoverNote: 'Mijoz Bitrix ham ishlatadi',
+    });
+    const ev = await ctx.prisma.ticketEvent.findFirstOrThrow({
+      where: { ticketId: ticket.id, type: 'REASSIGNED' },
+    });
     expect(ev.payload).toMatchObject({ to: staff[1].id, handoverNote: 'Mijoz Bitrix ham ishlatadi' });
     // inactive users cannot be assigned
     await ctx.http().patch(`/api/v1/users/${staff[2].id}`).set(bearer(admin)).send({ isActive: false });
-    expect((await ctx.http().post(`/api/v1/tickets/${ticket.id}/assign`).set(bearer(admin)).send({ assigneeId: staff[2].id })).status).toBe(400);
+    expect(
+      (
+        await ctx
+          .http()
+          .post(`/api/v1/tickets/${ticket.id}/assign`)
+          .set(bearer(admin))
+          .send({ assigneeId: staff[2].id })
+      ).status,
+    ).toBe(400);
   });
 
   it('first outgoing message stamps firstResponseAt once and moves the SLA deadline to resolution', async () => {
     const { ticket } = await open();
     const before = ticket.slaDeadline.getTime();
     const [a, b] = await Promise.all([
-      svc().attachMessage(ticket.id, '-1001234567890', { direction: 'OUT', text: 'Ko\'rib chiqamiz', telegramMessageId: 10n }),
-      svc().attachMessage(ticket.id, '-1001234567890', { direction: 'OUT', text: 'Salom', telegramMessageId: 11n }),
+      svc().attachMessage(ticket.id, '-1001234567890', {
+        direction: 'OUT',
+        text: "Ko'rib chiqamiz",
+        telegramMessageId: 10n,
+      }),
+      svc().attachMessage(ticket.id, '-1001234567890', {
+        direction: 'OUT',
+        text: 'Salom',
+        telegramMessageId: 11n,
+      }),
     ]);
     expect([a.firstResponse, b.firstResponse].filter(Boolean)).toHaveLength(1);
     const row = await ctx.prisma.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
     expect(row.firstResponseAt).toBeTruthy();
     expect(row.slaDeadline.getTime()).toBeGreaterThan(before);
     // redelivery of the same Telegram message is ignored
-    const dup = await svc().attachMessage(ticket.id, '-1001234567890', { direction: 'OUT', text: 'Salom', telegramMessageId: 11n });
+    const dup = await svc().attachMessage(ticket.id, '-1001234567890', {
+      direction: 'OUT',
+      text: 'Salom',
+      telegramMessageId: 11n,
+    });
     expect(dup.duplicate).toBe(true);
   });
 
   it('internal notes are stored but never count as a response', async () => {
     const { ticket } = await open();
-    expect((await ctx.http().post(`/api/v1/tickets/${ticket.id}/note`).set(bearer(staff[0].token)).send({ text: 'Mijoz bilan telefon orqali gaplashildi' })).status).toBe(204);
+    expect(
+      (
+        await ctx
+          .http()
+          .post(`/api/v1/tickets/${ticket.id}/note`)
+          .set(bearer(staff[0].token))
+          .send({ text: 'Mijoz bilan telefon orqali gaplashildi' })
+      ).status,
+    ).toBe(204);
     const row = await ctx.prisma.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
     expect(row.firstResponseAt).toBeNull();
-    expect(await ctx.prisma.ticketMessage.count({ where: { ticketId: ticket.id, isInternalNote: true } })).toBe(1);
+    expect(
+      await ctx.prisma.ticketMessage.count({ where: { ticketId: ticket.id, isInternalNote: true } }),
+    ).toBe(1);
   });
 
   it('merges two open tickets of different groups', async () => {
-    const g2 = await ctx.http().post('/api/v1/client-groups').set(bearer(admin)).send({ telegramChatId: '-1005555555555', title: 'Orient 2', companyName: 'Orient Motors 2' });
+    const g2 = await ctx
+      .http()
+      .post('/api/v1/client-groups')
+      .set(bearer(admin))
+      .send({ telegramChatId: '-1005555555555', title: 'Orient 2', companyName: 'Orient Motors 2' });
     const a = (await open('birinchi')).ticket;
     const b = (await svc().createTicket({ clientGroupId: g2.body.id, text: 'ikkinchi' })).ticket;
-    const r = await ctx.http().post(`/api/v1/tickets/${b.id}/merge`).set(bearer(staff[0].token)).send({ targetId: a.id });
+    const r = await ctx
+      .http()
+      .post(`/api/v1/tickets/${b.id}/merge`)
+      .set(bearer(staff[0].token))
+      .send({ targetId: a.id });
     expect(r.status).toBe(200);
     const src = await ctx.prisma.ticket.findUniqueOrThrow({ where: { id: b.id } });
     expect(src).toMatchObject({ status: 'CLOSED', mergedIntoId: a.id });
@@ -185,12 +268,17 @@ describe('tickets (e2e)', () => {
   it('lists with filters/pagination and returns the by-chat view for the extension', async () => {
     const { ticket } = await open();
     await ctx.http().post(`/api/v1/tickets/${ticket.id}/take`).set(bearer(staff[1].token));
-    const list = await ctx.http().get(`/api/v1/tickets?assigneeId=${staff[1].id}&pageSize=10`).set(bearer(staff[0].token));
+    const list = await ctx
+      .http()
+      .get(`/api/v1/tickets?assigneeId=${staff[1].id}&pageSize=10`)
+      .set(bearer(staff[0].token));
     expect(list.body.total).toBe(1);
     expect(list.body.items[0].clientGroup.companyName).toBe('Orient Motors');
     const search = await ctx.http().get(`/api/v1/tickets?q=orient`).set(bearer(staff[0].token));
     expect(search.body.total).toBe(1);
-    expect((await ctx.http().get('/api/v1/tickets?pageSize=1000').set(bearer(staff[0].token))).status).toBe(400);
+    expect((await ctx.http().get('/api/v1/tickets?pageSize=1000').set(bearer(staff[0].token))).status).toBe(
+      400,
+    );
 
     const byChat = await ctx.http().get('/api/v1/tickets/by-chat/-1234567890').set(bearer(staff[0].token));
     expect(byChat.body.current.id).toBe(ticket.id);
@@ -198,10 +286,24 @@ describe('tickets (e2e)', () => {
   });
 
   it('templates: admin CRUD, staff read + usage counter', async () => {
-    const t = await ctx.http().post('/api/v1/templates').set(bearer(admin)).send({ category: 'AmoCRM', title: 'Webhook', bodyUz: 'Salom {mijoz_nomi}', keywords: ['webhook'] });
+    const t = await ctx
+      .http()
+      .post('/api/v1/templates')
+      .set(bearer(admin))
+      .send({ category: 'AmoCRM', title: 'Webhook', bodyUz: 'Salom {mijoz_nomi}', keywords: ['webhook'] });
     expect(t.status).toBe(201);
-    expect((await ctx.http().post('/api/v1/templates').set(bearer(staff[0].token)).send({ title: 'x', bodyUz: 'y' })).status).toBe(403);
-    await Promise.all([1, 2, 3].map(() => ctx.http().post(`/api/v1/templates/${t.body.id}/use`).set(bearer(staff[0].token))));
+    expect(
+      (
+        await ctx
+          .http()
+          .post('/api/v1/templates')
+          .set(bearer(staff[0].token))
+          .send({ title: 'x', bodyUz: 'y' })
+      ).status,
+    ).toBe(403);
+    await Promise.all(
+      [1, 2, 3].map(() => ctx.http().post(`/api/v1/templates/${t.body.id}/use`).set(bearer(staff[0].token))),
+    );
     const list = await ctx.http().get('/api/v1/templates').set(bearer(staff[0].token));
     expect(list.body[0].usageCount).toBe(3);
   });

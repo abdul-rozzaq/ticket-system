@@ -11,8 +11,12 @@ describe('maskSensitive', () => {
     expect(maskSensitive('Parol abc12345 edi').text).toBe('Parol [PAROL] edi');
   });
   it('masks bearer tokens and JWT', () => {
-    expect(maskSensitive('Authorization: Bearer abcdef123456789xyz').text).toBe('Authorization: Bearer [TOKEN]');
-    expect(kinds('token eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U')).toContain('TOKEN');
+    expect(maskSensitive('Authorization: Bearer abcdef123456789xyz').text).toBe(
+      'Authorization: Bearer [TOKEN]',
+    );
+    expect(
+      kinds('token eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U'),
+    ).toContain('TOKEN');
   });
   it('masks known API key shapes', () => {
     expect(maskSensitive('key sk-ant-api03-abcdefghijklmnopqrstuv').text).not.toContain('sk-ant');
@@ -20,7 +24,9 @@ describe('maskSensitive', () => {
     expect(maskSensitive('bot 123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsawQ').text).toBe('bot [TOKEN]');
   });
   it('masks long hex and base64 blobs', () => {
-    expect(maskSensitive('hash 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08 ok').text).toBe('hash [HEX] ok');
+    expect(
+      maskSensitive('hash 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08 ok').text,
+    ).toBe('hash [HEX] ok');
     expect(kinds('blob QWxhZGRpbjpvcGVuIHNlc2FtZQ1234567890abcdefghijklmnop==')).toContain('BASE64');
   });
   it('masks Luhn-valid cards and local-BIN cards', () => {
@@ -34,7 +40,9 @@ describe('maskSensitive', () => {
     expect(maskSensitive('raqam 90 123 45 67').text).toBe('raqam [TELEFON]');
   });
   it('masks credentials in URLs but keeps host', () => {
-    expect(maskSensitive('https://admin:p4ss@pbx.example.uz/panel').text).toBe('https://[LOGIN]:[PAROL]@pbx.example.uz/panel');
+    expect(maskSensitive('https://admin:p4ss@pbx.example.uz/panel').text).toBe(
+      'https://[LOGIN]:[PAROL]@pbx.example.uz/panel',
+    );
   });
   it('leaves normal support text alone', () => {
     const t = "Webhook ulanmadi, lidlar tushmayapti. Versiya 2.3, 15:30 da sodir bo'ldi. Ticket T-1041.";

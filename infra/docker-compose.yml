@@ -1,5 +1,5 @@
 # TP Ticket System. `docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build`
-# Services userbot / bot / admin are added as their apps are implemented (see STATUS.md).
+# Services bot / admin are added as their apps are implemented (see STATUS.md).
 services:
   postgres:
     image: pgvector/pgvector:pg17
@@ -47,14 +47,36 @@ services:
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?set SEED_ADMIN_PASSWORD}
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       DEMO_MODE: ${DEMO_MODE:-false}
-      SERVICE_TOKEN: ${SERVICE_TOKEN:-}
+      SERVICE_TOKEN: ${SERVICE_TOKEN:?set SERVICE_TOKEN (16+ chars)}
     ports:
       - '${API_PORT:-3000}:3000'
     healthcheck:
-      test: ['CMD', 'node', '-e', "fetch('http://localhost:3000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
+
+  userbot:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.userbot
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      API_URL: http://api:3000
+      SERVICE_TOKEN: ${SERVICE_TOKEN:?set SERVICE_TOKEN (16+ chars)}
+      # Get these at https://my.telegram.org -> API development tools
+      TG_API_ID: ${TG_API_ID:-}
+      TG_API_HASH: ${TG_API_HASH:-}
+      USERBOT_FAKE: ${USERBOT_FAKE:-false}
 
 volumes:
   pgdata:

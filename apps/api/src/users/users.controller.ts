@@ -20,7 +20,10 @@ export class UsersController {
   }
 
   @Post()
-  create(@Body(new ZodPipe(createUserSchema)) body: z.infer<typeof createUserSchema>, @CurrentUser() actor: User) {
+  create(
+    @Body(new ZodPipe(createUserSchema)) body: z.infer<typeof createUserSchema>,
+    @CurrentUser() actor: User,
+  ) {
     return this.users.create(body, actor.id);
   }
 

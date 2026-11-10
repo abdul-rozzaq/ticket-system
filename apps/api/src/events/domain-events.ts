@@ -15,7 +15,11 @@ export interface TicketSnapshot {
 export interface DomainEventMap {
   'ticket.created': TicketSnapshot & { needsReview: boolean };
   'ticket.updated': TicketSnapshot & { change: string; actorId: string | null };
-  'ticket.assigned': TicketSnapshot & { previousAssigneeId: string | null; actorId: string | null; handoverNote?: string };
+  'ticket.assigned': TicketSnapshot & {
+    previousAssigneeId: string | null;
+    actorId: string | null;
+    handoverNote?: string;
+  };
   'ticket.closed': TicketSnapshot & { solutionNote: string | null; actorId: string | null };
   'ai.requested': { ticketId: string; chatId: string; actorId: string | null; messageId: string | null };
   'ticket.message': { ticketId: string; direction: 'IN' | 'OUT'; isFirstResponse: boolean };
@@ -38,7 +42,8 @@ export class DomainEvents {
     for (const l of this.emitter.listeners(event) as Array<(p: DomainEventMap[K]) => unknown>) {
       try {
         const r = l(payload);
-        if (r instanceof Promise) r.catch((e) => this.logger.warn(`listener for ${event} failed: ${String(e)}`));
+        if (r instanceof Promise)
+          r.catch((e) => this.logger.warn(`listener for ${event} failed: ${String(e)}`));
       } catch (e) {
         this.logger.warn(`listener for ${event} failed: ${String(e)}`);
       }

@@ -7,7 +7,13 @@ import { DomainEvents } from '../src/events/domain-events';
 const fake = {
   calls: [] as Array<{ text: string; context: string[] }>,
   impl: async (): Promise<AiClassification> => ({
-    isRequest: true, confidence: 0.92, systemType: 'AMOCRM', category: 'webhook', urgency: 'NORMAL', language: 'uz', summary: 'Webhook ishlamayapti',
+    isRequest: true,
+    confidence: 0.92,
+    systemType: 'AMOCRM',
+    category: 'webhook',
+    urgency: 'NORMAL',
+    language: 'uz',
+    summary: 'Webhook ishlamayapti',
   }),
   async classify(text: string, context: string[]) {
     this.calls.push({ text, context });
@@ -18,8 +24,16 @@ const fake = {
 const CHAT = 'c:1234567890';
 let msgId = 1000;
 const msg = (o: Partial<Record<string, unknown>> = {}) => ({
-  chatId: CHAT, messageId: String(++msgId), senderId: '555', senderName: 'Jasur', text: 'Webhook ulanmadi, lidlar tushmayapti',
-  outgoing: false, replyToMessageId: null, date: new Date().toISOString(), hasMedia: false, ...o,
+  chatId: CHAT,
+  messageId: String(++msgId),
+  senderId: '555',
+  senderName: 'Jasur',
+  text: 'Webhook ulanmadi, lidlar tushmayapti',
+  outgoing: false,
+  replyToMessageId: null,
+  date: new Date().toISOString(),
+  hasMedia: false,
+  ...o,
 });
 
 describe('intake pipeline (e2e)', () => {
@@ -32,7 +46,8 @@ describe('intake pipeline (e2e)', () => {
   const intake = () => ctx.app.get(IntakeService);
   const flush = () => intake().processDue(new Date(Date.now() + 60_000));
   const tickets = () => ctx.prisma.ticket.findMany({ orderBy: { openedAt: 'asc' } });
-  const ping = (token: string) => ctx.http().post('/api/v1/activity').set(bearer(token)).send({ chatId: '-1001234567890' });
+  const ping = (token: string) =>
+    ctx.http().post('/api/v1/activity').set(bearer(token)).send({ chatId: '-1001234567890' });
   const waitFor = async <T>(fn: () => Promise<T | null | undefined | false>, ms = 3000): Promise<T> => {
     const end = Date.now() + ms;
     for (;;) {
@@ -52,23 +67,49 @@ describe('intake pipeline (e2e)', () => {
   beforeEach(async () => {
     await ctx.reset();
     fake.calls = [];
-    fake.impl = async () => ({ isRequest: true, confidence: 0.92, systemType: 'AMOCRM', category: 'webhook', urgency: 'NORMAL', language: 'uz', summary: 'Webhook ishlamayapti' });
+    fake.impl = async () => ({
+      isRequest: true,
+      confidence: 0.92,
+      systemType: 'AMOCRM',
+      category: 'webhook',
+      urgency: 'NORMAL',
+      language: 'uz',
+      summary: 'Webhook ishlamayapti',
+    });
     admin = await adminToken(ctx);
     staff = [];
     for (const n of ['ali', 'vali']) {
-      const u = await ctx.http().post('/api/v1/users').set(bearer(admin)).send({ username: n, displayName: n, password: 'Temp-password-1' });
+      const u = await ctx
+        .http()
+        .post('/api/v1/users')
+        .set(bearer(admin))
+        .send({ username: n, displayName: n, password: 'Temp-password-1' });
       const l = await ctx.login(n, 'Temp-password-1');
-      const c = await ctx.http().post('/api/v1/auth/change-password').set(bearer(l.accessToken)).send({ currentPassword: 'Temp-password-1', newPassword: 'Staff-new-pass-1' });
+      const c = await ctx
+        .http()
+        .post('/api/v1/auth/change-password')
+        .set(bearer(l.accessToken))
+        .send({ currentPassword: 'Temp-password-1', newPassword: 'Staff-new-pass-1' });
       staff.push({ id: u.body.id, token: c.body.accessToken });
     }
-    const g = await ctx.http().post('/api/v1/client-groups').set(bearer(admin)).send({ telegramChatId: '-1001234567890', title: 'Orient Motors', companyName: 'Orient Motors', systemType: 'AMOCRM' });
+    const g = await ctx.http().post('/api/v1/client-groups').set(bearer(admin)).send({
+      telegramChatId: '-1001234567890',
+      title: 'Orient Motors',
+      companyName: 'Orient Motors',
+      systemType: 'AMOCRM',
+    });
     groupId = g.body.id;
   });
 
   it('requires the service token', async () => {
     expect((await ctx.http().post('/api/v1/internal/userbot/messages').send(msg())).status).toBe(401);
-    expect((await ctx.http().post('/api/v1/internal/userbot/messages').set('x-service-token', 'wrong').send(msg())).status).toBe(401);
-    expect((await ctx.http().post('/api/v1/internal/userbot/messages').set(bearer(admin)).send(msg())).status).toBe(401); // a user JWT is not a service token
+    expect(
+      (await ctx.http().post('/api/v1/internal/userbot/messages').set('x-service-token', 'wrong').send(msg()))
+        .status,
+    ).toBe(401);
+    expect(
+      (await ctx.http().post('/api/v1/internal/userbot/messages').set(bearer(admin)).send(msg())).status,
+    ).toBe(401); // a user JWT is not a service token
     expect((await post({ chatId: 'bad' })).status).toBe(400);
   });
 
@@ -81,7 +122,10 @@ describe('intake pipeline (e2e)', () => {
 
   it('rules pre-filter: noise never reaches the AI and is recorded once (redelivery-safe)', async () => {
     const thanks = msg({ text: 'Rahmat!' });
-    expect((await post(msg({ text: '👍' }))).body).toMatchObject({ action: 'filtered', reason: 'EMOJI_ONLY' });
+    expect((await post(msg({ text: '👍' }))).body).toMatchObject({
+      action: 'filtered',
+      reason: 'EMOJI_ONLY',
+    });
     expect((await post(thanks)).body).toMatchObject({ action: 'filtered', reason: 'ACKNOWLEDGEMENT' });
     expect((await post(thanks)).body).toMatchObject({ action: 'filtered' }); // same message delivered twice
     expect((await post(msg({ text: 'ok' }))).body.reason).toBe('ACKNOWLEDGEMENT');
@@ -93,14 +137,20 @@ describe('intake pipeline (e2e)', () => {
   it('debounce: several messages in a row become ONE ticket after the window, with masked text sent to AI', async () => {
     expect((await post(msg({ text: 'Salom, AmoCRMda muammo bor' }))).body.action).toBe('buffered');
     await post(msg({ text: 'login admin, parol: Qwerty123 bilan kirolmayapman' }));
-    await post(msg({ text: 'tel +998 90 123 45 67 ga qo\'ng\'iroq qiling' }));
+    await post(msg({ text: "tel +998 90 123 45 67 ga qo'ng'iroq qiling" }));
     expect(await intake().processDue(new Date())).toBe(0); // inside the window: nothing happens
     expect(await tickets()).toHaveLength(0);
 
     expect(await flush()).toBe(1);
     const [t] = await tickets();
     expect(await tickets()).toHaveLength(1);
-    expect(t).toMatchObject({ status: 'NEW', systemType: 'AMOCRM', category: 'webhook', summary: 'Webhook ishlamayapti', needsReview: false });
+    expect(t).toMatchObject({
+      status: 'NEW',
+      systemType: 'AMOCRM',
+      category: 'webhook',
+      summary: 'Webhook ishlamayapti',
+      needsReview: false,
+    });
     expect(t.aiConfidence).toBeCloseTo(0.92);
     expect(await ctx.prisma.ticketMessage.count({ where: { ticketId: t.id } })).toBe(3);
 
@@ -116,7 +166,15 @@ describe('intake pipeline (e2e)', () => {
   });
 
   it('AI says "not a request": stored as filtered with the verdict, then one click creates the ticket', async () => {
-    fake.impl = async () => ({ isRequest: false, confidence: 0.95, systemType: 'OTHER', category: 'chat', urgency: 'LOW', language: 'uz', summary: 'mijozlar o\'rtasida suhbat' });
+    fake.impl = async () => ({
+      isRequest: false,
+      confidence: 0.95,
+      systemType: 'OTHER',
+      category: 'chat',
+      urgency: 'LOW',
+      language: 'uz',
+      summary: "mijozlar o'rtasida suhbat",
+    });
     await post(msg({ text: 'Bugun ob-havo juda yaxshi ekan, kim futbolga boradi?' }));
     await flush();
     expect(await tickets()).toHaveLength(0);
@@ -125,15 +183,28 @@ describe('intake pipeline (e2e)', () => {
     expect(f.body.items[0]).toMatchObject({ reason: 'AI_NOT_REQUEST' });
     expect(f.body.items[0].aiVerdict.isRequest).toBe(false);
 
-    const created = await ctx.http().post(`/api/v1/filtered-messages/${f.body.items[0].id}/create-ticket`).set(bearer(staff[0].token));
+    const created = await ctx
+      .http()
+      .post(`/api/v1/filtered-messages/${f.body.items[0].id}/create-ticket`)
+      .set(bearer(staff[0].token));
     expect(created.status).toBe(200);
     const t = await ctx.prisma.ticket.findUniqueOrThrow({ where: { id: created.body.ticketId } });
     expect(t.createdFromFilteredId).toBe(f.body.items[0].id);
-    expect((await ctx.http().get('/api/v1/filtered-messages').set(bearer(staff[0].token))).body.total).toBe(0); // no longer pending review
+    expect((await ctx.http().get('/api/v1/filtered-messages').set(bearer(staff[0].token))).body.total).toBe(
+      0,
+    ); // no longer pending review
   });
 
   it('FAIL-OPEN: low confidence or any AI failure opens the ticket flagged needsReview', async () => {
-    fake.impl = async () => ({ isRequest: false, confidence: 0.3, systemType: 'OTHER', category: 'other', urgency: 'NORMAL', language: 'uz', summary: '' });
+    fake.impl = async () => ({
+      isRequest: false,
+      confidence: 0.3,
+      systemType: 'OTHER',
+      category: 'other',
+      urgency: 'NORMAL',
+      language: 'uz',
+      summary: '',
+    });
     await post(msg({ text: 'Menimcha nimadir ishlamayapti shekilli' }));
     await flush();
     let [t] = await tickets();
@@ -147,7 +218,9 @@ describe('intake pipeline (e2e)', () => {
     await flush();
     t = (await tickets())[1];
     expect(t).toMatchObject({ needsReview: true, aiConfidence: null, status: 'NEW' });
-    const ev = await ctx.prisma.ticketEvent.findFirstOrThrow({ where: { ticketId: t.id, type: 'AI_CLASSIFIED' } });
+    const ev = await ctx.prisma.ticketEvent.findFirstOrThrow({
+      where: { ticketId: t.id, type: 'AI_CLASSIFIED' },
+    });
     expect(JSON.stringify(ev.payload)).toContain('AI provider timeout');
   });
 
@@ -162,7 +235,7 @@ describe('intake pipeline (e2e)', () => {
     await post(msg({ text: 'Webhook ulanmadi, lidlar tushmayapti' }));
     await flush();
     const calls = fake.calls.length;
-    const r = await post(msg({ text: 'Skrinshot yubordim, qarab ko\'ring' }));
+    const r = await post(msg({ text: "Skrinshot yubordim, qarab ko'ring" }));
     expect(r.body.action).toBe('attached');
     expect(fake.calls).toHaveLength(calls);
     expect(await ctx.prisma.ticketMessage.count()).toBe(2);
@@ -186,11 +259,15 @@ describe('intake pipeline (e2e)', () => {
     await ping(staff[0].token);
     await ping(staff[1].token);
     await post(msg({ outgoing: true, text: 'Bir daqiqa' }));
-    expect((await ctx.prisma.ticketMessage.findFirstOrThrow({ where: { direction: 'OUT' } })).answeredConfidence).toBe(0.5);
+    expect(
+      (await ctx.prisma.ticketMessage.findFirstOrThrow({ where: { direction: 'OUT' } })).answeredConfidence,
+    ).toBe(0.5);
 
     await ctx.prisma.staffActivity.deleteMany();
     await post(msg({ outgoing: true, text: 'Yana bitta xabar' }));
-    const last = await ctx.prisma.ticketMessage.findFirstOrThrow({ where: { direction: 'OUT', text: 'Yana bitta xabar' } });
+    const last = await ctx.prisma.ticketMessage.findFirstOrThrow({
+      where: { direction: 'OUT', text: 'Yana bitta xabar' },
+    });
     expect(last.answeredById).toBeNull();
   });
 
@@ -205,14 +282,19 @@ describe('intake pipeline (e2e)', () => {
       await post(msg());
       await flush();
     });
-    const outgoing = (text: string, extra: object = {}) => post(msg({ outgoing: true, senderId: '1', text, ...extra }));
+    const outgoing = (text: string, extra: object = {}) =>
+      post(msg({ outgoing: true, senderId: '1', text, ...extra }));
 
     it('.done closes with the solution note, attributes the actor, and queues deletion of the command message', async () => {
       await ping(staff[1].token);
       const r = await outgoing('.done token yangilandi');
       expect(r.body).toMatchObject({ action: 'command', command: 'done' });
       const [t] = await tickets();
-      expect(t).toMatchObject({ status: 'CLOSED', solutionNote: 'token yangilandi', closedById: staff[1].id });
+      expect(t).toMatchObject({
+        status: 'CLOSED',
+        solutionNote: 'token yangilandi',
+        closedById: staff[1].id,
+      });
       const del = await ctx.prisma.userbotCommand.findFirstOrThrow({ where: { type: 'DELETE_MESSAGES' } });
       expect(del.payload).toMatchObject({ chatId: CHAT, messageIds: [expect.any(String)] });
     });
@@ -241,9 +323,13 @@ describe('intake pipeline (e2e)', () => {
       await flush();
       const open = (await tickets()).find((t) => t.status !== 'CLOSED')!;
 
-      const r = await outgoing('.done eski masala', { replyToMessageId: first.telegramMessageId!.toString() });
+      const r = await outgoing('.done eski masala', {
+        replyToMessageId: first.telegramMessageId!.toString(),
+      });
       expect(r.body.ticketId).toBe(old.id);
-      expect((await ctx.prisma.ticket.findUniqueOrThrow({ where: { id: open.id } })).status).not.toBe('CLOSED');
+      expect((await ctx.prisma.ticket.findUniqueOrThrow({ where: { id: open.id } })).status).not.toBe(
+        'CLOSED',
+      );
     });
 
     it('.ai emits an event for the AI draft flow', async () => {
@@ -260,11 +346,15 @@ describe('intake pipeline (e2e)', () => {
     });
   });
 
-  it('reactions: ✅ closes, 👀 counts as first response, others\' reactions are ignored', async () => {
+  it("reactions: ✅ closes, 👀 counts as first response, others' reactions are ignored", async () => {
     await post(msg());
     await flush();
     const react = (emoji: string, byMe = true) =>
-      ctx.http().post('/api/v1/internal/userbot/reactions').set(ctx.svc()).send({ chatId: CHAT, messageId: '1001', emoji, byMe });
+      ctx
+        .http()
+        .post('/api/v1/internal/userbot/reactions')
+        .set(ctx.svc())
+        .send({ chatId: CHAT, messageId: '1001', emoji, byMe });
     expect((await react('✅', false)).body.action).toBe('ignored');
     expect((await react('👀')).body.action).toBe('seen');
     expect((await tickets())[0].firstResponseAt).not.toBeNull();
@@ -275,30 +365,68 @@ describe('intake pipeline (e2e)', () => {
 
   it('auto-assignment: LEAST_LOADED global default, FIXED_OWNER per-group override', async () => {
     // ali already has one open ticket in another group -> vali is less loaded
-    const g2 = await ctx.http().post('/api/v1/client-groups').set(bearer(admin)).send({ telegramChatId: '-1007777777777', title: 'B', companyName: 'B' });
-    const other = await ctx.http().post('/api/v1/tickets').set(bearer(admin)).send({ clientGroupId: g2.body.id, text: 'boshqa muammo' });
+    const g2 = await ctx
+      .http()
+      .post('/api/v1/client-groups')
+      .set(bearer(admin))
+      .send({ telegramChatId: '-1007777777777', title: 'B', companyName: 'B' });
+    const other = await ctx
+      .http()
+      .post('/api/v1/tickets')
+      .set(bearer(admin))
+      .send({ clientGroupId: g2.body.id, text: 'boshqa muammo' });
     await ctx.http().post(`/api/v1/tickets/${other.body.ticket.id}/take`).set(bearer(staff[0].token));
 
     // the admin account is also a candidate; make it unavailable so the outcome is deterministic
     const me = (await ctx.http().get('/api/v1/auth/me').set(bearer(admin))).body;
     await ctx.http().patch(`/api/v1/users/${me.id}`).set(bearer(admin)).send({ available: false });
-    await ctx.http().put('/api/v1/settings').set(bearer(admin)).send({ 'assignment.strategy': 'LEAST_LOADED' });
+    await ctx
+      .http()
+      .put('/api/v1/settings')
+      .set(bearer(admin))
+      .send({ 'assignment.strategy': 'LEAST_LOADED' });
     await post(msg());
     await flush();
-    const t = await waitFor(async () => (await ctx.prisma.ticket.findFirst({ where: { clientGroupId: groupId } }))?.assigneeId);
+    const t = await waitFor(
+      async () => (await ctx.prisma.ticket.findFirst({ where: { clientGroupId: groupId } }))?.assigneeId,
+    );
     expect(t).toBe(staff[1].id);
 
-    await ctx.http().post(`/api/v1/tickets/${(await ctx.prisma.ticket.findFirstOrThrow({ where: { clientGroupId: groupId } })).id}/close`).set(bearer(admin)).send({});
-    await ctx.http().patch(`/api/v1/client-groups/${groupId}`).set(bearer(admin)).send({ assignmentStrategy: 'FIXED_OWNER', defaultOwnerId: staff[0].id });
+    await ctx
+      .http()
+      .post(
+        `/api/v1/tickets/${(await ctx.prisma.ticket.findFirstOrThrow({ where: { clientGroupId: groupId } })).id}/close`,
+      )
+      .set(bearer(admin))
+      .send({});
+    await ctx
+      .http()
+      .patch(`/api/v1/client-groups/${groupId}`)
+      .set(bearer(admin))
+      .send({ assignmentStrategy: 'FIXED_OWNER', defaultOwnerId: staff[0].id });
     await post(msg({ text: 'Yana muammo bor, tekshirib bering' }));
     await flush();
-    const t2 = await waitFor(async () => (await ctx.prisma.ticket.findMany({ where: { clientGroupId: groupId, status: { not: 'CLOSED' } } }))[0]?.assigneeId);
+    const t2 = await waitFor(
+      async () =>
+        (
+          await ctx.prisma.ticket.findMany({ where: { clientGroupId: groupId, status: { not: 'CLOSED' } } })
+        )[0]?.assigneeId,
+    );
     expect(t2).toBe(staff[0].id);
   });
 
   it('discovery imports unconfirmed, inactive groups once', async () => {
     const send = () =>
-      ctx.http().post('/api/v1/internal/userbot/dialogs').set(ctx.svc()).send({ items: [{ chatId: 'c:42424242', title: 'Yangi guruh' }, { chatId: 'c:1234567890', title: 'Orient Motors' }] });
+      ctx
+        .http()
+        .post('/api/v1/internal/userbot/dialogs')
+        .set(ctx.svc())
+        .send({
+          items: [
+            { chatId: 'c:42424242', title: 'Yangi guruh' },
+            { chatId: 'c:1234567890', title: 'Orient Motors' },
+          ],
+        });
     expect((await send()).body).toEqual({ created: 1 });
     expect((await send()).body).toEqual({ created: 0 });
     const g = await ctx.prisma.clientGroup.findFirstOrThrow({ where: { telegramChatId: 'c:42424242' } });
@@ -307,17 +435,26 @@ describe('intake pipeline (e2e)', () => {
   });
 
   describe('userbot login + command outbox', () => {
-    const claim = (wait = 0) => ctx.http().get(`/api/v1/internal/userbot/commands?wait=${wait}`).set(ctx.svc());
-    const result = (id: string, body: object) => ctx.http().post(`/api/v1/internal/userbot/commands/${id}/result`).set(ctx.svc()).send(body);
-    const status = async () => (await ctx.http().get('/api/v1/telegram/userbot/status').set(bearer(admin))).body;
+    const claim = (wait = 0) =>
+      ctx.http().get(`/api/v1/internal/userbot/commands?wait=${wait}`).set(ctx.svc());
+    const result = (id: string, body: object) =>
+      ctx.http().post(`/api/v1/internal/userbot/commands/${id}/result`).set(ctx.svc()).send(body);
+    const status = async () =>
+      (await ctx.http().get('/api/v1/telegram/userbot/status').set(bearer(admin))).body;
 
     it('is admin only', async () => {
-      expect((await ctx.http().get('/api/v1/telegram/userbot/status').set(bearer(staff[0].token))).status).toBe(403);
+      expect(
+        (await ctx.http().get('/api/v1/telegram/userbot/status').set(bearer(staff[0].token))).status,
+      ).toBe(403);
     });
 
     it('phone -> code -> 2FA password -> session stored encrypted; secrets never rest in the DB', async () => {
       expect((await status()).status).toBe('LOGGED_OUT');
-      await ctx.http().post('/api/v1/telegram/userbot/login/phone').set(bearer(admin)).send({ phone: '+998901234567' });
+      await ctx
+        .http()
+        .post('/api/v1/telegram/userbot/login/phone')
+        .set(bearer(admin))
+        .send({ phone: '+998901234567' });
       expect((await status()).status).toBe('CODE_REQUESTED');
 
       const c1 = (await claim()).body;
@@ -335,9 +472,17 @@ describe('intake pipeline (e2e)', () => {
       await result(c2[0].id, { ok: true, result: { needPassword: true } });
       expect((await status()).status).toBe('NEED_PASSWORD');
 
-      await ctx.http().post('/api/v1/telegram/userbot/login/password').set(bearer(admin)).send({ password: 'my-2fa-secret' });
+      await ctx
+        .http()
+        .post('/api/v1/telegram/userbot/login/password')
+        .set(bearer(admin))
+        .send({ password: 'my-2fa-secret' });
       const c3 = (await claim()).body;
-      expect(JSON.stringify((await ctx.prisma.userbotCommand.findUniqueOrThrow({ where: { id: c3[0].id } })).payload)).not.toContain('my-2fa-secret');
+      expect(
+        JSON.stringify(
+          (await ctx.prisma.userbotCommand.findUniqueOrThrow({ where: { id: c3[0].id } })).payload,
+        ),
+      ).not.toContain('my-2fa-secret');
       await result(c3[0].id, { ok: true, result: { session: 'SESSION-STRING-XYZ', phone: '+998901234567' } });
 
       const s = await status();
@@ -346,13 +491,45 @@ describe('intake pipeline (e2e)', () => {
       const row = await ctx.prisma.userbotSession.findFirstOrThrow();
       expect(row.sessionEnc).toBeTruthy();
       expect(row.sessionEnc).not.toContain('SESSION-STRING-XYZ');
-      expect(JSON.stringify((await ctx.prisma.userbotCommand.findUniqueOrThrow({ where: { id: c3[0].id } })).result)).not.toContain('SESSION-STRING-XYZ');
-      expect((await ctx.http().get('/api/v1/internal/userbot/session').set(ctx.svc())).body).toEqual({ session: 'SESSION-STRING-XYZ' });
+      expect(
+        JSON.stringify(
+          (await ctx.prisma.userbotCommand.findUniqueOrThrow({ where: { id: c3[0].id } })).result,
+        ),
+      ).not.toContain('SESSION-STRING-XYZ');
+      expect((await ctx.http().get('/api/v1/internal/userbot/session').set(ctx.svc())).body).toEqual({
+        session: 'SESSION-STRING-XYZ',
+      });
       expect((await ctx.http().get('/api/v1/internal/userbot/session')).status).toBe(401);
     });
 
+    it('CLI fallback can store a session directly (encrypted)', async () => {
+      const put = await ctx
+        .http()
+        .put('/api/v1/internal/userbot/session')
+        .set(ctx.svc())
+        .send({ session: 'CLI-SESSION-STRING-0123456789', phone: '+998901234567' });
+      expect(put.status).toBe(204);
+      expect(await status()).toMatchObject({ status: 'CONNECTED', hasSession: true });
+      expect((await ctx.prisma.userbotSession.findFirstOrThrow()).sessionEnc).not.toContain('CLI-SESSION');
+      expect((await ctx.http().get('/api/v1/internal/userbot/session').set(ctx.svc())).body.session).toBe(
+        'CLI-SESSION-STRING-0123456789',
+      );
+      expect(
+        (
+          await ctx
+            .http()
+            .put('/api/v1/internal/userbot/session')
+            .send({ session: 'x'.repeat(30) })
+        ).status,
+      ).toBe(401);
+    });
+
     it('failed login is reported and logout clears the session', async () => {
-      await ctx.http().post('/api/v1/telegram/userbot/login/phone').set(bearer(admin)).send({ phone: '+998901234567' });
+      await ctx
+        .http()
+        .post('/api/v1/telegram/userbot/login/phone')
+        .set(bearer(admin))
+        .send({ phone: '+998901234567' });
       const c = (await claim()).body;
       await result(c[0].id, { ok: false, error: 'PHONE_NUMBER_INVALID' });
       expect(await status()).toMatchObject({ status: 'LOGIN_FAILED' });
@@ -366,7 +543,11 @@ describe('intake pipeline (e2e)', () => {
 
     it('heartbeats mark the userbot alive; long-poll returns commands enqueued while waiting', async () => {
       expect((await status()).alive).toBe(false);
-      await ctx.http().post('/api/v1/internal/userbot/status').set(ctx.svc()).send({ state: 'CONNECTED', me: { username: 'tp_account' } });
+      await ctx
+        .http()
+        .post('/api/v1/internal/userbot/status')
+        .set(ctx.svc())
+        .send({ state: 'CONNECTED', me: { username: 'tp_account' } });
       expect(await status()).toMatchObject({ alive: true, status: 'CONNECTED' });
 
       const polling = claim(5);
@@ -377,7 +558,8 @@ describe('intake pipeline (e2e)', () => {
     });
 
     it('two concurrent pollers never receive the same command', async () => {
-      for (let i = 0; i < 6; i++) await ctx.http().post('/api/v1/telegram/userbot/discover').set(bearer(admin));
+      for (let i = 0; i < 6; i++)
+        await ctx.http().post('/api/v1/telegram/userbot/discover').set(bearer(admin));
       const [a, b] = await Promise.all([claim(), claim()]);
       const ids = [...a.body, ...b.body].map((c: { id: string }) => c.id);
       expect(ids).toHaveLength(6);

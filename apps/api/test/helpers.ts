@@ -31,7 +31,10 @@ export interface TestCtx {
   /** Wipe all rows and re-run the admin seed. */
   reset: () => Promise<void>;
   svc: () => Record<string, string>;
-  login: (username: string, password: string) => Promise<{ accessToken: string; refreshToken: string; body: any; status: number }>;
+  login: (
+    username: string,
+    password: string,
+  ) => Promise<{ accessToken: string; refreshToken: string; body: any; status: number }>;
 }
 
 export async function createTestApp(opts: { classifier?: unknown } = {}): Promise<TestCtx> {
@@ -62,7 +65,12 @@ export async function createTestApp(opts: { classifier?: unknown } = {}): Promis
     },
     async login(username, password) {
       const r = await http().post('/api/v1/auth/login').send({ username, password });
-      return { accessToken: r.body.accessToken, refreshToken: r.body.refreshToken, body: r.body, status: r.status };
+      return {
+        accessToken: r.body.accessToken,
+        refreshToken: r.body.refreshToken,
+        body: r.body,
+        status: r.status,
+      };
     },
   };
 }

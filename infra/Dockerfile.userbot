@@ -1,0 +1,20 @@
+# Build context: repository root.
+FROM node:22-alpine AS build
+RUN corepack enable
+WORKDIR /repo
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json ./
+COPY packages/shared/package.json packages/shared/
+COPY apps/userbot/package.json apps/userbot/
+RUN pnpm install --frozen-lockfile --filter @tp/userbot... --filter @tp/shared...
+COPY packages/shared packages/shared
+COPY apps/userbot apps/userbot
+RUN pnpm --filter @tp/shared build && pnpm --filter @tp/userbot build
+
+FROM node:22-alpine AS run
+RUN corepack enable
+WORKDIR /repo
+ENV NODE_ENV=production
+COPY --from=build /repo /repo
+WORKDIR /repo/apps/userbot
+# The userbot has no database and no inbound port: it only talks to the API and to Telegram.
+CMD ["node", "dist/main.js"]

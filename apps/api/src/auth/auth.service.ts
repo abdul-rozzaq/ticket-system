@@ -62,11 +62,18 @@ export class AuthService {
 
   private async assertNotLocked(username: string, ip?: string | null) {
     const since = new Date(Date.now() - this.env.LOCKOUT_WINDOW_MINUTES * 60_000);
-    const failuresForUser = await this.prisma.loginAttempt.count({ where: { username, success: false, createdAt: { gte: since } } });
+    const failuresForUser = await this.prisma.loginAttempt.count({
+      where: { username, success: false, createdAt: { gte: since } },
+    });
     // A successful login resets the user counter: only failures after the latest success count.
-    const lastOk = await this.prisma.loginAttempt.findFirst({ where: { username, success: true, createdAt: { gte: since } }, orderBy: { createdAt: 'desc' } });
+    const lastOk = await this.prisma.loginAttempt.findFirst({
+      where: { username, success: true, createdAt: { gte: since } },
+      orderBy: { createdAt: 'desc' },
+    });
     const failures = lastOk
-      ? await this.prisma.loginAttempt.count({ where: { username, success: false, createdAt: { gt: lastOk.createdAt } } })
+      ? await this.prisma.loginAttempt.count({
+          where: { username, success: false, createdAt: { gt: lastOk.createdAt } },
+        })
       : failuresForUser;
     const failuresForIp = ip
       ? await this.prisma.loginAttempt.count({ where: { ip, success: false, createdAt: { gte: since } } })
@@ -77,7 +84,11 @@ export class AuthService {
     }
   }
 
-  async login(username: string, password: string, ctx: ClientCtx): Promise<{ user: ReturnType<typeof publicUser> } & TokenPair> {
+  async login(
+    username: string,
+    password: string,
+    ctx: ClientCtx,
+  ): Promise<{ user: ReturnType<typeof publicUser> } & TokenPair> {
     await this.assertNotLocked(username, ctx.ip);
     const user = await this.prisma.user.findUnique({ where: { username } });
     this.dummyHash ??= argon2.hash('dummy-password-for-timing', { type: argon2.argon2id });
@@ -93,7 +104,13 @@ export class AuthService {
     }
     await this.prisma.loginAttempt.create({ data: { username, ip: ctx.ip, success: true } });
     await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-    await this.audit.log({ actorId: user.id, action: 'auth.login', entity: 'User', entityId: user.id, ip: ctx.ip });
+    await this.audit.log({
+      actorId: user.id,
+      action: 'auth.login',
+      entity: 'User',
+      entityId: user.id,
+      ip: ctx.ip,
+    });
     const tokens = await this.issue(user, randomUUID(), ctx);
     return { user: publicUser(user), ...tokens };
   }
@@ -118,36 +135,62 @@ export class AuthService {
   /** Rotating refresh: each token is single-use. Presenting an already-used token revokes the whole family. */
   async refresh(refreshToken: string, ctx: ClientCtx): Promise<TokenPair> {
     const hash = this.crypto.sha256(refreshToken);
-    const row = await this.prisma.refreshToken.findUnique({ where: { tokenHash: hash }, include: { user: true } });
-    const invalid = () => new AppError(HttpStatus.UNAUTHORIZED, 'INVALID_REFRESH', t('auth.invalidCredentials'));
+    const row = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash: hash },
+      include: { user: true },
+    });
+    const invalid = () =>
+      new AppError(HttpStatus.UNAUTHORIZED, 'INVALID_REFRESH', t('auth.invalidCredentials'));
     if (!row) throw invalid();
     if (row.revokedAt) {
       // Reuse of a rotated/revoked token: assume theft, kill the family.
-      await this.prisma.refreshToken.updateMany({ where: { familyId: row.familyId, revokedAt: null }, data: { revokedAt: new Date() } });
-      await this.audit.log({ actorId: row.userId, action: 'auth.refresh_reuse', meta: { familyId: row.familyId }, ip: ctx.ip });
+      await this.prisma.refreshToken.updateMany({
+        where: { familyId: row.familyId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      await this.audit.log({
+        actorId: row.userId,
+        action: 'auth.refresh_reuse',
+        meta: { familyId: row.familyId },
+        ip: ctx.ip,
+      });
       throw invalid();
     }
     if (row.expiresAt < new Date() || !row.user.isActive) throw invalid();
 
     // Claim the token atomically: only one concurrent request can flip revokedAt from null.
-    const claimed = await this.prisma.refreshToken.updateMany({ where: { id: row.id, revokedAt: null }, data: { revokedAt: new Date() } });
+    const claimed = await this.prisma.refreshToken.updateMany({
+      where: { id: row.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
     if (claimed.count !== 1) throw invalid();
     const next = await this.issue(row.user, row.familyId, ctx);
-    const newRow = await this.prisma.refreshToken.findUnique({ where: { tokenHash: this.crypto.sha256(next.refreshToken) } });
-    if (newRow) await this.prisma.refreshToken.update({ where: { id: row.id }, data: { replacedById: newRow.id } });
+    const newRow = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash: this.crypto.sha256(next.refreshToken) },
+    });
+    if (newRow)
+      await this.prisma.refreshToken.update({ where: { id: row.id }, data: { replacedById: newRow.id } });
     return next;
   }
 
   async logout(refreshToken: string): Promise<void> {
-    const row = await this.prisma.refreshToken.findUnique({ where: { tokenHash: this.crypto.sha256(refreshToken) } });
+    const row = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash: this.crypto.sha256(refreshToken) },
+    });
     if (row) {
-      await this.prisma.refreshToken.updateMany({ where: { familyId: row.familyId, revokedAt: null }, data: { revokedAt: new Date() } });
+      await this.prisma.refreshToken.updateMany({
+        where: { familyId: row.familyId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
       await this.audit.log({ actorId: row.userId, action: 'auth.logout' });
     }
   }
 
   async revokeAllForUser(userId: string): Promise<void> {
-    await this.prisma.refreshToken.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } });
+    await this.prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
   }
 
   async changePassword(userId: string, current: string, next: string, ctx: ClientCtx): Promise<TokenPair> {
@@ -160,7 +203,13 @@ export class AuthService {
       data: { passwordHash: await this.hashPassword(next), mustChangePassword: false },
     });
     await this.revokeAllForUser(userId); // other sessions must log in again
-    await this.audit.log({ actorId: userId, action: 'auth.password_changed', entity: 'User', entityId: userId, ip: ctx.ip });
+    await this.audit.log({
+      actorId: userId,
+      action: 'auth.password_changed',
+      entity: 'User',
+      entityId: userId,
+      ip: ctx.ip,
+    });
     return this.issue(updated, randomUUID(), ctx);
   }
 

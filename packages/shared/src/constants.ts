@@ -10,7 +10,13 @@ export type Urgency = (typeof URGENCIES)[number];
 export const SYSTEM_TYPES = ['AMOCRM', 'BITRIX24', 'PBX', 'OTHER'] as const;
 export type SystemType = (typeof SYSTEM_TYPES)[number];
 
-export const ASSIGNMENT_STRATEGIES = ['MANUAL', 'FIXED_OWNER', 'ROUND_ROBIN', 'LEAST_LOADED', 'ON_DUTY'] as const;
+export const ASSIGNMENT_STRATEGIES = [
+  'MANUAL',
+  'FIXED_OWNER',
+  'ROUND_ROBIN',
+  'LEAST_LOADED',
+  'ON_DUTY',
+] as const;
 export type AssignmentStrategy = (typeof ASSIGNMENT_STRATEGIES)[number];
 
 export const TICKET_EVENT_TYPES = [

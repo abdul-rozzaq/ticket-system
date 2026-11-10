@@ -24,14 +24,19 @@ export class AttributionService {
 
   async attribute(chatKey: string, sentAt: Date): Promise<Attribution | null> {
     const rows = await this.prisma.staffActivity.findMany({
-      where: { chatId: chatKey, ts: { gte: new Date(sentAt.getTime() - BEFORE_MS), lte: new Date(sentAt.getTime() + AFTER_MS) } },
+      where: {
+        chatId: chatKey,
+        ts: { gte: new Date(sentAt.getTime() - BEFORE_MS), lte: new Date(sentAt.getTime() + AFTER_MS) },
+      },
       orderBy: { ts: 'desc' },
     });
     if (!rows.length) return null;
     const users = new Set(rows.map((r) => r.userId));
     if (users.size === 1) return { userId: rows[0].userId, confidence: 0.9 };
     // several people pinged the same chat: pick the ping closest to the send time, but admit we are unsure
-    const closest = [...rows].sort((a, b) => Math.abs(a.ts.getTime() - sentAt.getTime()) - Math.abs(b.ts.getTime() - sentAt.getTime()))[0];
+    const closest = [...rows].sort(
+      (a, b) => Math.abs(a.ts.getTime() - sentAt.getTime()) - Math.abs(b.ts.getTime() - sentAt.getTime()),
+    )[0];
     return { userId: closest.userId, confidence: 0.5 };
   }
 }

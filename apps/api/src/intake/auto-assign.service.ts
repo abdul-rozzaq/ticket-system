@@ -30,8 +30,16 @@ export class AutoAssignService implements OnModuleInit, OnModuleDestroy {
   async candidates(): Promise<Candidate[]> {
     const [users, open, last] = await Promise.all([
       this.prisma.user.findMany({ where: { isActive: true, role: { in: ['STAFF', 'ADMIN'] } } }),
-      this.prisma.ticket.groupBy({ by: ['assigneeId'], where: { status: { not: 'CLOSED' }, assigneeId: { not: null } }, _count: true }),
-      this.prisma.ticket.groupBy({ by: ['assigneeId'], where: { assigneeId: { not: null } }, _max: { openedAt: true } }),
+      this.prisma.ticket.groupBy({
+        by: ['assigneeId'],
+        where: { status: { not: 'CLOSED' }, assigneeId: { not: null } },
+        _count: true,
+      }),
+      this.prisma.ticket.groupBy({
+        by: ['assigneeId'],
+        where: { assigneeId: { not: null } },
+        _max: { openedAt: true },
+      }),
     ]);
     const count = new Map(open.map((o) => [o.assigneeId, o._count]));
     const lastAt = new Map(last.map((l) => [l.assigneeId, l._max.openedAt]));
@@ -42,22 +50,31 @@ export class AutoAssignService implements OnModuleInit, OnModuleDestroy {
       onDuty: u.onDuty,
       openCount: count.get(u.id) ?? 0,
       lastAssignedAt: lastAt.get(u.id) ?? null,
-      workingHours: u.workingHours ? workingHoursSchema.safeParse(u.workingHours).data ?? null : null,
+      workingHours: u.workingHours ? (workingHoursSchema.safeParse(u.workingHours).data ?? null) : null,
     }));
   }
 
   /** Hint for manual cards (bot): previous handler of this client, else least loaded. */
   async suggestFor(clientGroupId: string): Promise<string | null> {
-    const prev = await this.prisma.ticket.findFirst({ where: { clientGroupId, assigneeId: { not: null } }, orderBy: { openedAt: 'desc' } });
+    const prev = await this.prisma.ticket.findFirst({
+      where: { clientGroupId, assigneeId: { not: null } },
+      orderBy: { openedAt: 'desc' },
+    });
     return suggestAssignee(await this.candidates(), { lastHandlerId: prev?.assigneeId });
   }
 
   async onCreated(ticketId: string): Promise<void> {
     try {
-      const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId }, include: { clientGroup: true } });
+      const ticket = await this.prisma.ticket.findUnique({
+        where: { id: ticketId },
+        include: { clientGroup: true },
+      });
       if (!ticket || ticket.assigneeId) return;
-      const strategy = (ticket.clientGroup.assignmentStrategy ?? (await this.settings.get('assignment.strategy'))) as AssignmentStrategy;
-      const pick = pickAssignee(strategy, await this.candidates(), { fixedOwnerId: ticket.clientGroup.defaultOwnerId });
+      const strategy = (ticket.clientGroup.assignmentStrategy ??
+        (await this.settings.get('assignment.strategy'))) as AssignmentStrategy;
+      const pick = pickAssignee(strategy, await this.candidates(), {
+        fixedOwnerId: ticket.clientGroup.defaultOwnerId,
+      });
       if (pick) await this.tickets.assign(ticketId, pick, null);
     } catch (e) {
       this.logger.warn(`auto-assign failed for ${ticketId}: ${String(e)}`); // never block ticket creation

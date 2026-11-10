@@ -11,7 +11,11 @@ import { JwtAuthGuard } from './guards';
   imports: [
     JwtModule.registerAsync({
       inject: [APP_ENV],
-      useFactory: (env: Env) => ({ secret: env.JWT_SECRET, signOptions: { algorithm: 'HS256' }, verifyOptions: { algorithms: ['HS256'] } }),
+      useFactory: (env: Env) => ({
+        secret: env.JWT_SECRET,
+        signOptions: { algorithm: 'HS256' },
+        verifyOptions: { algorithms: ['HS256'] },
+      }),
     }),
   ],
   controllers: [AuthController],

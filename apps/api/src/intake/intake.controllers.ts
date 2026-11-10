@@ -1,4 +1,16 @@
-import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query, UseGuards, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import type { User } from '@prisma/client';
@@ -27,14 +39,31 @@ export const messageEventSchema = z.object({
   date: z.string().datetime(),
   hasMedia: z.boolean().default(false),
 });
-const reactionEventSchema = z.object({ chatId: z.string().min(1), messageId: z.string().regex(/^\d+$/), emoji: z.string().min(1).max(16), byMe: z.boolean() });
-const dialogsSchema = z.object({ items: z.array(z.object({ chatId: z.string().min(1), title: z.string().max(300) })).max(5000) });
+const reactionEventSchema = z.object({
+  chatId: z.string().min(1),
+  messageId: z.string().regex(/^\d+$/),
+  emoji: z.string().min(1).max(16),
+  byMe: z.boolean(),
+});
+const dialogsSchema = z.object({
+  items: z.array(z.object({ chatId: z.string().min(1), title: z.string().max(300) })).max(5000),
+});
 const statusSchema = z.object({
   state: z.enum(['CONNECTED', 'DISCONNECTED', 'LOGGED_OUT', 'ERROR']),
   detail: z.string().max(300).optional(),
-  me: z.object({ phone: z.string().optional(), username: z.string().optional(), premium: z.boolean().optional() }).optional(),
+  me: z
+    .object({
+      phone: z.string().optional(),
+      username: z.string().optional(),
+      premium: z.boolean().optional(),
+    })
+    .optional(),
 });
-const commandResultSchema = z.object({ ok: z.boolean(), result: z.record(z.string(), z.unknown()).default({}), error: z.string().max(500).optional() });
+const commandResultSchema = z.object({
+  ok: z.boolean(),
+  result: z.record(z.string(), z.unknown()).default({}),
+  error: z.string().max(500).optional(),
+});
 
 // ------------------------------------------------------------------ userbot -> API (service token)
 
@@ -64,13 +93,31 @@ export class InternalUserbotController {
   @HttpCode(200)
   @Post('dialogs')
   dialogs(@Body(new ZodPipe(dialogsSchema)) body: z.infer<typeof dialogsSchema>) {
-    return this.groups.importDiscovered(body.items.map((i) => ({ telegramChatId: i.chatId, title: i.title })));
+    return this.groups.importDiscovered(
+      body.items.map((i) => ({ telegramChatId: i.chatId, title: i.title })),
+    );
   }
 
   @HttpCode(204)
   @Post('status')
   async status(@Body(new ZodPipe(statusSchema)) body: z.infer<typeof statusSchema>) {
-    await this.outbox.heartbeat(body.state, { detail: body.detail ?? null, ...(body.me ? { me: body.me } : {}) });
+    await this.outbox.heartbeat(body.state, {
+      detail: body.detail ?? null,
+      ...(body.me ? { me: body.me } : {}),
+    });
+  }
+
+  /** CLI login fallback: stores a session string (encrypted by OutboxService). */
+  @HttpCode(204)
+  @Put('session')
+  async putSession(
+    @Body(new ZodPipe(z.object({ session: z.string().min(20).max(4000), phone: z.string().optional() })))
+    body: {
+      session: string;
+      phone?: string;
+    },
+  ) {
+    await this.outbox.storeSession(body.session, body.phone);
   }
 
   @Get('session')
@@ -87,7 +134,10 @@ export class InternalUserbotController {
 
   @HttpCode(204)
   @Post('commands/:id/result')
-  async result(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(commandResultSchema)) body: z.infer<typeof commandResultSchema>) {
+  async result(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodPipe(commandResultSchema)) body: z.infer<typeof commandResultSchema>,
+  ) {
     await this.outbox.complete(id, body.ok, body.result, body.error);
   }
 }
@@ -112,7 +162,9 @@ export class UserbotAdminController {
   @Get('status')
   async status() {
     const row = await this.outbox.sessionRow();
-    const pending = await this.prisma.userbotCommand.count({ where: { status: { in: ['PENDING', 'CLAIMED'] } } });
+    const pending = await this.prisma.userbotCommand.count({
+      where: { status: { in: ['PENDING', 'CLAIMED'] } },
+    });
     return {
       status: row.status,
       phone: (row.info as { phone?: string } | null)?.phone ?? null,
@@ -129,7 +181,10 @@ export class UserbotAdminController {
   @Post('login/phone')
   async phone(@Body(new ZodPipe(phoneSchema)) body: z.infer<typeof phoneSchema>, @CurrentUser() actor: User) {
     const row = await this.outbox.sessionRow();
-    await this.prisma.userbotSession.update({ where: { id: row.id }, data: { phone: body.phone, status: 'CODE_REQUESTED' } });
+    await this.prisma.userbotSession.update({
+      where: { id: row.id },
+      data: { phone: body.phone, status: 'CODE_REQUESTED' },
+    });
     await this.audit.log({ actorId: actor.id, action: 'userbot.login_start' });
     return { id: (await this.outbox.enqueue('LOGIN_SEND_CODE', { phone: body.phone })).id };
   }
@@ -173,14 +228,28 @@ export class IntakeStaffController {
   ) {}
 
   @Get('filtered-messages')
-  async filtered(@Query('groupId') groupId?: string, @Query('reason') reason?: string, @Query('page') page = '1', @Query('pageSize') pageSize = '25') {
+  async filtered(
+    @Query('groupId') groupId?: string,
+    @Query('reason') reason?: string,
+    @Query('page') page = '1',
+    @Query('pageSize') pageSize = '25',
+  ) {
     const take = Math.min(Math.max(Number(pageSize) || 25, 1), 100);
     const where = { clientGroupId: groupId, reason, createdTicketId: null };
     const [items, total] = await Promise.all([
-      this.prisma.filteredMessage.findMany({ where, orderBy: { createdAt: 'desc' }, skip: (Math.max(Number(page) || 1, 1) - 1) * take, take, include: { clientGroup: { select: { companyName: true } } } }),
+      this.prisma.filteredMessage.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (Math.max(Number(page) || 1, 1) - 1) * take,
+        take,
+        include: { clientGroup: { select: { companyName: true } } },
+      }),
       this.prisma.filteredMessage.count({ where }),
     ]);
-    return { items: items.map((i) => ({ ...i, telegramMessageId: i.telegramMessageId?.toString() ?? null })), total };
+    return {
+      items: items.map((i) => ({ ...i, telegramMessageId: i.telegramMessageId?.toString() ?? null })),
+      total,
+    };
   }
 
   @HttpCode(200)
@@ -196,7 +265,12 @@ export class IntakeStaffController {
    */
   @HttpCode(204)
   @Post('activity')
-  async activity(@Body(new ZodPipe(z.object({ chatId: z.string().min(1), ts: z.string().datetime().optional() }))) body: { chatId: string; ts?: string }, @CurrentUser() user: User, @Req() _req: Request) {
+  async activity(
+    @Body(new ZodPipe(z.object({ chatId: z.string().min(1), ts: z.string().datetime().optional() })))
+    body: { chatId: string; ts?: string },
+    @CurrentUser() user: User,
+    @Req() _req: Request,
+  ) {
     if (!(await this.settings.get('activity.pingEnabled'))) return;
     const group = await this.groups.findByChatId(body.chatId);
     if (!group) return;

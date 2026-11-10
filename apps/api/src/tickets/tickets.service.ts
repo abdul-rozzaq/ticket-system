@@ -51,7 +51,8 @@ const detailInclude = {
   closedBy: { select: { id: true, displayName: true } },
 } satisfies Prisma.TicketInclude;
 
-const isUniqueViolation = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
+const isUniqueViolation = (e: unknown) =>
+  e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
 
 export const snapshot = (tk: Ticket): TicketSnapshot => ({
   ticketId: tk.id,
@@ -78,10 +79,14 @@ export class TicketsService {
    * concurrent intake workers: the loser of the race attaches its message to the winner's ticket instead.
    */
   async createTicket(input: CreateTicketInput): Promise<{ ticket: Ticket; created: boolean }> {
-    const group = await this.prisma.clientGroup.findUnique({ where: { id: input.clientGroupId }, include: { slaPolicy: true } });
+    const group = await this.prisma.clientGroup.findUnique({
+      where: { id: input.clientGroupId },
+      include: { slaPolicy: true },
+    });
     if (!group) throw new AppError(HttpStatus.NOT_FOUND, 'NOT_FOUND', 'Guruh topilmadi');
 
-    const firstResponseMin = group.slaPolicy?.firstResponseMinutes ?? (await this.settings.get('sla.firstResponseMinutes'));
+    const firstResponseMin =
+      group.slaPolicy?.firstResponseMinutes ?? (await this.settings.get('sla.firstResponseMinutes'));
     const now = new Date();
     const previous = await this.prisma.ticket.findFirst({
       where: { clientGroupId: group.id, status: 'CLOSED' },
@@ -128,7 +133,9 @@ export class TicketsService {
       return { ticket, created: true };
     } catch (e) {
       if (!isUniqueViolation(e)) throw e;
-      const open = await this.prisma.ticket.findFirst({ where: { clientGroupId: group.id, status: { not: 'CLOSED' } } });
+      const open = await this.prisma.ticket.findFirst({
+        where: { clientGroupId: group.id, status: { not: 'CLOSED' } },
+      });
       if (!open) throw e;
       await this.attachMessage(open.id, group.telegramChatId, {
         telegramMessageId: input.telegramMessageId,
@@ -144,7 +151,11 @@ export class TicketsService {
   // ------------------------------------------------------------------ messages
 
   /** Idempotent on (chatId, telegramMessageId). Handles first-response stamping and client follow-ups. */
-  async attachMessage(ticketId: string, chatId: string, m: MessageInput): Promise<{ duplicate: boolean; firstResponse: boolean }> {
+  async attachMessage(
+    ticketId: string,
+    chatId: string,
+    m: MessageInput,
+  ): Promise<{ duplicate: boolean; firstResponse: boolean }> {
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new AppError(HttpStatus.NOT_FOUND, 'NOT_FOUND', t('ticket.notFound'));
     try {
@@ -175,12 +186,18 @@ export class TicketsService {
       if (ticket.status === 'CLOSED' || m.isInternalNote) return;
 
       if (m.direction === 'OUT' && !ticket.firstResponseAt) {
-        firstResponse = await this.stampFirstResponse(tx, ticket, m.answeredById ?? null, { answeredConfidence: m.answeredConfidence ?? null });
+        firstResponse = await this.stampFirstResponse(tx, ticket, m.answeredById ?? null, {
+          answeredConfidence: m.answeredConfidence ?? null,
+        });
       }
       if (m.direction === 'IN' && ticket.status === 'WAITING_CLIENT') {
         const next: TicketStatus = ticket.assigneeId ? 'IN_PROGRESS' : 'NEW';
         await tx.ticket.update({ where: { id: ticketId }, data: { status: next } });
-        await this.ev(tx, ticketId, 'STATUS_CHANGED', null, { from: 'WAITING_CLIENT', to: next, reason: 'client_replied' });
+        await this.ev(tx, ticketId, 'STATUS_CHANGED', null, {
+          from: 'WAITING_CLIENT',
+          to: next,
+          reason: 'client_replied',
+        });
       }
     });
     this.events.emit('ticket.message', { ticketId, direction: m.direction, isFirstResponse: firstResponse });
@@ -191,11 +208,22 @@ export class TicketsService {
    * Atomically stamps firstResponseAt (only one concurrent caller wins) and moves the SLA deadline from
    * "first response" to "resolution". Returns true for the winner.
    */
-  private async stampFirstResponse(tx: Tx, ticket: Ticket, actorId: string | null, payload: Record<string, unknown>): Promise<boolean> {
-    const r = await tx.ticket.updateMany({ where: { id: ticket.id, firstResponseAt: null }, data: { firstResponseAt: new Date() } });
+  private async stampFirstResponse(
+    tx: Tx,
+    ticket: Ticket,
+    actorId: string | null,
+    payload: Record<string, unknown>,
+  ): Promise<boolean> {
+    const r = await tx.ticket.updateMany({
+      where: { id: ticket.id, firstResponseAt: null },
+      data: { firstResponseAt: new Date() },
+    });
     if (r.count !== 1) return false;
     const resolutionMin = await this.settings.get('sla.resolutionMinutes');
-    await tx.ticket.update({ where: { id: ticket.id }, data: { slaDeadline: new Date(ticket.openedAt.getTime() + resolutionMin * 60_000) } });
+    await tx.ticket.update({
+      where: { id: ticket.id },
+      data: { slaDeadline: new Date(ticket.openedAt.getTime() + resolutionMin * 60_000) },
+    });
     await this.ev(tx, ticket.id, 'FIRST_RESPONSE', actorId, payload as Prisma.InputJsonValue);
     return true;
   }
@@ -204,7 +232,9 @@ export class TicketsService {
   async markSeen(ticketId: string, actorId: string | null): Promise<boolean> {
     const ticket = await this.requireTicket(ticketId);
     if (ticket.status === 'CLOSED' || ticket.firstResponseAt) return false;
-    return this.prisma.$transaction((tx) => this.stampFirstResponse(tx, ticket, actorId, { via: 'reaction' }));
+    return this.prisma.$transaction((tx) =>
+      this.stampFirstResponse(tx, ticket, actorId, { via: 'reaction' }),
+    );
   }
 
   // ------------------------------------------------------------------ assignment & status
@@ -222,24 +252,44 @@ export class TicketsService {
     const ticket = await this.requireTicket(ticketId);
     if (r.count === 1) {
       const updated = await this.prisma.$transaction(async (tx) => {
-        const row = ticket.status === 'NEW' ? await tx.ticket.update({ where: { id: ticketId }, data: { status: 'IN_PROGRESS' } }) : ticket;
+        const row =
+          ticket.status === 'NEW'
+            ? await tx.ticket.update({ where: { id: ticketId }, data: { status: 'IN_PROGRESS' } })
+            : ticket;
         await this.ev(tx, ticketId, 'ASSIGNED', userId, { assigneeId: userId, via: 'take' });
-        if (ticket.status === 'NEW') await this.ev(tx, ticketId, 'STATUS_CHANGED', userId, { from: 'NEW', to: 'IN_PROGRESS' });
+        if (ticket.status === 'NEW')
+          await this.ev(tx, ticketId, 'STATUS_CHANGED', userId, { from: 'NEW', to: 'IN_PROGRESS' });
         return row;
       });
-      this.events.emit('ticket.assigned', { ...snapshot(updated), previousAssigneeId: null, actorId: userId });
+      this.events.emit('ticket.assigned', {
+        ...snapshot(updated),
+        previousAssigneeId: null,
+        actorId: userId,
+      });
       return { ticket: updated, won: true };
     }
     if (ticket.status === 'CLOSED') throw new AppError(HttpStatus.CONFLICT, 'CLOSED', t('ticket.closed'));
     if (ticket.assigneeId === userId) return { ticket, won: true }; // idempotent
-    const owner = ticket.assigneeId ? await this.prisma.user.findUnique({ where: { id: ticket.assigneeId } }) : null;
-    throw new AppError(HttpStatus.CONFLICT, 'ALREADY_TAKEN', t('ticket.alreadyTaken', { name: owner?.displayName ?? '?' }), {
-      assigneeId: ticket.assigneeId,
-    });
+    const owner = ticket.assigneeId
+      ? await this.prisma.user.findUnique({ where: { id: ticket.assigneeId } })
+      : null;
+    throw new AppError(
+      HttpStatus.CONFLICT,
+      'ALREADY_TAKEN',
+      t('ticket.alreadyTaken', { name: owner?.displayName ?? '?' }),
+      {
+        assigneeId: ticket.assigneeId,
+      },
+    );
   }
 
   /** Explicit (re)assignment by anyone with access, optionally with a handover note for the new assignee. */
-  async assign(ticketId: string, assigneeId: string, actorId: string | null, handoverNote?: string): Promise<Ticket> {
+  async assign(
+    ticketId: string,
+    assigneeId: string,
+    actorId: string | null,
+    handoverNote?: string,
+  ): Promise<Ticket> {
     await this.requireActiveUser(assigneeId);
     const before = await this.requireTicket(ticketId);
     if (before.status === 'CLOSED') throw new AppError(HttpStatus.CONFLICT, 'CLOSED', t('ticket.closed'));
@@ -270,7 +320,10 @@ export class TicketsService {
     const before = await this.requireTicket(ticketId);
     if (before.status === 'CLOSED' || !before.assigneeId) return before;
     const updated = await this.prisma.$transaction(async (tx) => {
-      const row = await tx.ticket.update({ where: { id: ticketId }, data: { assigneeId: null, status: 'NEW' } });
+      const row = await tx.ticket.update({
+        where: { id: ticketId },
+        data: { assigneeId: null, status: 'NEW' },
+      });
       await this.ev(tx, ticketId, 'REASSIGNED', actorId, { from: before.assigneeId, to: null });
       return row;
     });
@@ -279,7 +332,8 @@ export class TicketsService {
   }
 
   async setStatus(ticketId: string, status: TicketStatus, actorId: string | null): Promise<Ticket> {
-    if (status === 'CLOSED') throw new AppError(HttpStatus.BAD_REQUEST, 'USE_CLOSE', 'Yopish uchun close amalidan foydalaning');
+    if (status === 'CLOSED')
+      throw new AppError(HttpStatus.BAD_REQUEST, 'USE_CLOSE', 'Yopish uchun close amalidan foydalaning');
     const before = await this.requireTicket(ticketId);
     if (before.status === status) return before;
     if (!ALLOWED_STATUS[before.status].includes(status)) {
@@ -287,8 +341,12 @@ export class TicketsService {
     }
     const updated = await this.prisma.$transaction(async (tx) => {
       // optimistic guard: only apply if nobody changed the status meanwhile
-      const r = await tx.ticket.updateMany({ where: { id: ticketId, status: before.status }, data: { status } });
-      if (r.count !== 1) throw new AppError(HttpStatus.CONFLICT, 'CONFLICT', 'Tiket boshqa tomonidan o\'zgartirildi');
+      const r = await tx.ticket.updateMany({
+        where: { id: ticketId, status: before.status },
+        data: { status },
+      });
+      if (r.count !== 1)
+        throw new AppError(HttpStatus.CONFLICT, 'CONFLICT', "Tiket boshqa tomonidan o'zgartirildi");
       await this.ev(tx, ticketId, 'STATUS_CHANGED', actorId, { from: before.status, to: status });
       return tx.ticket.findUniqueOrThrow({ where: { id: ticketId } });
     });
@@ -321,7 +379,14 @@ export class TicketsService {
     await this.prisma.$transaction(async (tx) => {
       const group = await tx.clientGroup.findUniqueOrThrow({ where: { id: ticket.clientGroupId } });
       await tx.ticketMessage.create({
-        data: { ticketId, chatId: chatId ?? group.telegramChatId, direction: 'OUT', text, isInternalNote: true, answeredById: actorId },
+        data: {
+          ticketId,
+          chatId: chatId ?? group.telegramChatId,
+          direction: 'OUT',
+          text,
+          isInternalNote: true,
+          answeredById: actorId,
+        },
       });
       await this.ev(tx, ticketId, 'NOTE_ADDED', actorId, { length: text.length });
     });
@@ -329,22 +394,33 @@ export class TicketsService {
 
   /** Merge an open ticket into another open ticket (e.g. the same issue reported from two groups of one client). */
   async merge(sourceId: string, targetId: string, actorId: string): Promise<Ticket> {
-    if (sourceId === targetId) throw new AppError(HttpStatus.BAD_REQUEST, 'SAME_TICKET', "Bir xil tiketni birlashtirib bo'lmaydi");
+    if (sourceId === targetId)
+      throw new AppError(HttpStatus.BAD_REQUEST, 'SAME_TICKET', "Bir xil tiketni birlashtirib bo'lmaydi");
     const [source, target] = await Promise.all([this.requireTicket(sourceId), this.requireTicket(targetId)]);
     if (source.status === 'CLOSED' || target.status === 'CLOSED') {
-      throw new AppError(HttpStatus.CONFLICT, 'CLOSED', 'Yopilgan tiketni birlashtirib bo\'lmaydi');
+      throw new AppError(HttpStatus.CONFLICT, 'CLOSED', "Yopilgan tiketni birlashtirib bo'lmaydi");
     }
     const merged = await this.prisma.$transaction(async (tx) => {
       await tx.ticketMessage.updateMany({ where: { ticketId: sourceId }, data: { ticketId: targetId } });
       await tx.ticket.update({
         where: { id: sourceId },
-        data: { status: 'CLOSED', closedAt: new Date(), closedById: actorId, mergedIntoId: targetId, solutionNote: `Birlashtirildi: #${target.number}` },
+        data: {
+          status: 'CLOSED',
+          closedAt: new Date(),
+          closedById: actorId,
+          mergedIntoId: targetId,
+          solutionNote: `Birlashtirildi: #${target.number}`,
+        },
       });
       await this.ev(tx, sourceId, 'MERGED', actorId, { into: targetId });
       await this.ev(tx, targetId, 'MERGED', actorId, { from: sourceId });
       return tx.ticket.update({ where: { id: targetId }, data: { lastActivityAt: new Date() } });
     });
-    this.events.emit('ticket.closed', { ...snapshot(await this.requireTicket(sourceId)), solutionNote: null, actorId });
+    this.events.emit('ticket.closed', {
+      ...snapshot(await this.requireTicket(sourceId)),
+      solutionNote: null,
+      actorId,
+    });
     return merged;
   }
 
@@ -403,8 +479,15 @@ export class TicketsService {
   /** Current open ticket (and the latest closed one) for a client group: what the extension shows next to a chat. */
   async forGroup(clientGroupId: string) {
     const [current, last] = await Promise.all([
-      this.prisma.ticket.findFirst({ where: { clientGroupId, status: { not: 'CLOSED' } }, include: detailInclude }),
-      this.prisma.ticket.findFirst({ where: { clientGroupId, status: 'CLOSED' }, orderBy: { closedAt: 'desc' }, include: detailInclude }),
+      this.prisma.ticket.findFirst({
+        where: { clientGroupId, status: { not: 'CLOSED' } },
+        include: detailInclude,
+      }),
+      this.prisma.ticket.findFirst({
+        where: { clientGroupId, status: 'CLOSED' },
+        orderBy: { closedAt: 'desc' },
+        include: detailInclude,
+      }),
     ]);
     return { current, lastClosed: last };
   }
@@ -419,7 +502,8 @@ export class TicketsService {
 
   private async requireActiveUser(id: string) {
     const u = await this.prisma.user.findUnique({ where: { id } });
-    if (!u || !u.isActive) throw new AppError(HttpStatus.BAD_REQUEST, 'BAD_ASSIGNEE', "Xodim topilmadi yoki faol emas");
+    if (!u || !u.isActive)
+      throw new AppError(HttpStatus.BAD_REQUEST, 'BAD_ASSIGNEE', 'Xodim topilmadi yoki faol emas');
     return u;
   }
 

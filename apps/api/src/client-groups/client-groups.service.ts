@@ -55,13 +55,18 @@ export class ClientGroupsService {
     if (!ref) throw new AppError(HttpStatus.BAD_REQUEST, 'BAD_CHAT_ID', "Telegram chat ID noto'g'ri");
     try {
       const g = await this.prisma.clientGroup.create({
-        data: { ...input, telegramChatId: ref.key, defaultOwnerId: input.defaultOwnerId ?? undefined, isConfirmed: true },
+        data: {
+          ...input,
+          telegramChatId: ref.key,
+          defaultOwnerId: input.defaultOwnerId ?? undefined,
+          isConfirmed: true,
+        },
       });
       await this.audit.log({ actorId, action: 'client_group.create', entity: 'ClientGroup', entityId: g.id });
       return g;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        throw new AppError(HttpStatus.CONFLICT, 'GROUP_EXISTS', 'Bu guruh allaqachon qo\'shilgan');
+        throw new AppError(HttpStatus.CONFLICT, 'GROUP_EXISTS', "Bu guruh allaqachon qo'shilgan");
       }
       throw e;
     }
@@ -76,7 +81,13 @@ export class ClientGroupsService {
     }
     try {
       const g = await this.prisma.clientGroup.update({ where: { id }, data });
-      await this.audit.log({ actorId, action: 'client_group.update', entity: 'ClientGroup', entityId: id, meta: { fields: Object.keys(input) } });
+      await this.audit.log({
+        actorId,
+        action: 'client_group.update',
+        entity: 'ClientGroup',
+        entityId: id,
+        meta: { fields: Object.keys(input) },
+      });
       return g;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
@@ -92,10 +103,18 @@ export class ClientGroupsService {
     for (const it of items) {
       const ref = parseStoredPeer(it.telegramChatId) ?? normalizePeerId(it.telegramChatId);
       if (!ref) continue;
-      const exists = await this.prisma.clientGroup.findFirst({ where: { telegramChatId: { in: candidateKeys(ref) } } });
+      const exists = await this.prisma.clientGroup.findFirst({
+        where: { telegramChatId: { in: candidateKeys(ref) } },
+      });
       if (exists) continue;
       await this.prisma.clientGroup.create({
-        data: { telegramChatId: ref.key, title: it.title, companyName: it.title, isActive: false, isConfirmed: false },
+        data: {
+          telegramChatId: ref.key,
+          title: it.title,
+          companyName: it.title,
+          isActive: false,
+          isConfirmed: false,
+        },
       });
       created++;
     }

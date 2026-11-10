@@ -2,7 +2,15 @@ import { Injectable, Logger } from '@nestjs/common';
 import { aiClassificationSchema, DEFAULT_PROMPTS, type AiClassification, type AiTask } from '@tp/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto.service';
-import { AnthropicAdapter, CircuitBreaker, estimateCostUsd, LlmAdapter, LlmError, OpenAiCompatAdapter, withRetry } from './adapters';
+import {
+  AnthropicAdapter,
+  CircuitBreaker,
+  estimateCostUsd,
+  LlmAdapter,
+  LlmError,
+  OpenAiCompatAdapter,
+  withRetry,
+} from './adapters';
 
 export class AiNotConfiguredError extends Error {}
 export class AiBudgetExceededError extends Error {}
@@ -27,8 +35,14 @@ export class AiService extends IntakeClassifier {
   /** Public so tests can reset it between cases. */
   breaker = new CircuitBreaker(5, 60_000);
   /** Test seam: replace to avoid real network. */
-  adapterFactory: (type: string, apiKey: string, baseUrl: string | null) => LlmAdapter = (type, apiKey, baseUrl) =>
-    type === 'ANTHROPIC' ? new AnthropicAdapter(apiKey, baseUrl) : new OpenAiCompatAdapter(apiKey, baseUrl ?? 'https://api.openai.com/v1');
+  adapterFactory: (type: string, apiKey: string, baseUrl: string | null) => LlmAdapter = (
+    type,
+    apiKey,
+    baseUrl,
+  ) =>
+    type === 'ANTHROPIC'
+      ? new AnthropicAdapter(apiKey, baseUrl)
+      : new OpenAiCompatAdapter(apiKey, baseUrl ?? 'https://api.openai.com/v1');
   sleep: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms));
 
   constructor(
@@ -48,29 +62,59 @@ export class AiService extends IntakeClassifier {
     const start = new Date();
     start.setUTCDate(1);
     start.setUTCHours(0, 0, 0, 0);
-    const r = await this.prisma.aiUsageLog.aggregate({ _sum: { costUsd: true }, where: { createdAt: { gte: start } } });
+    const r = await this.prisma.aiUsageLog.aggregate({
+      _sum: { costUsd: true },
+      where: { createdAt: { gte: start } },
+    });
     return r._sum.costUsd ?? 0;
   }
 
   /** Raw completion with config loading, budget hard stop, circuit breaker, retries and usage logging. */
   async complete(input: CompleteInput): Promise<string> {
     const settings = await this.prisma.aiSettings.findUnique({ where: { id: 1 } });
-    const provider = settings?.providerId ? await this.prisma.aiProvider.findUnique({ where: { id: settings.providerId } }) : null;
+    const provider = settings?.providerId
+      ? await this.prisma.aiProvider.findUnique({ where: { id: settings.providerId } })
+      : null;
     const model =
-      input.task === 'classify' ? settings?.classifyModel : input.task === 'draft' ? settings?.draftModel : settings?.summaryModel;
-    if (!settings || !provider?.isActive || !model) throw new AiNotConfiguredError('AI provider/model is not configured');
+      input.task === 'classify'
+        ? settings?.classifyModel
+        : input.task === 'draft'
+          ? settings?.draftModel
+          : settings?.summaryModel;
+    if (!settings || !provider?.isActive || !model)
+      throw new AiNotConfiguredError('AI provider/model is not configured');
 
-    if (settings.hardStop && settings.monthlyBudgetUsd > 0 && (await this.monthSpendUsd()) >= settings.monthlyBudgetUsd) {
+    if (
+      settings.hardStop &&
+      settings.monthlyBudgetUsd > 0 &&
+      (await this.monthSpendUsd()) >= settings.monthlyBudgetUsd
+    ) {
       throw new AiBudgetExceededError('monthly AI budget exhausted');
     }
     if (this.breaker.isOpen) throw new LlmError('AI circuit breaker is open', undefined, false);
 
-    const system = input.system ?? (input.task === 'embedding' ? '' : await this.effectivePrompt(input.task as Exclude<AiTask, 'embedding'>));
-    const adapter = this.adapterFactory(provider.type, this.crypto.decrypt(provider.apiKeyEnc), provider.baseUrl);
+    const system =
+      input.system ??
+      (input.task === 'embedding'
+        ? ''
+        : await this.effectivePrompt(input.task as Exclude<AiTask, 'embedding'>));
+    const adapter = this.adapterFactory(
+      provider.type,
+      this.crypto.decrypt(provider.apiKeyEnc),
+      provider.baseUrl,
+    );
     const t0 = Date.now();
     try {
       const res = await withRetry(
-        () => adapter.complete({ model, system, user: input.user, maxTokens: settings.maxTokens, temperature: settings.temperature, timeoutMs: 20_000 }),
+        () =>
+          adapter.complete({
+            model,
+            system,
+            user: input.user,
+            maxTokens: settings.maxTokens,
+            temperature: settings.temperature,
+            timeoutMs: 20_000,
+          }),
         { retries: 2, baseMs: 400, sleep: this.sleep },
       );
       this.breaker.onSuccess();
@@ -85,11 +129,22 @@ export class AiService extends IntakeClassifier {
 
   async classify(maskedText: string, context: string[]): Promise<AiClassification> {
     const ctx = context.length ? `<context>\n${context.join('\n')}\n</context>\n` : '';
-    const text = await this.complete({ task: 'classify', user: `${ctx}<messages>\n${maskedText}\n</messages>` });
+    const text = await this.complete({
+      task: 'classify',
+      user: `${ctx}<messages>\n${maskedText}\n</messages>`,
+    });
     return parseClassification(text);
   }
 
-  private async logUsage(input: CompleteInput, model: string, latencyMs: number, inT: number, outT: number, ok: boolean, error?: string) {
+  private async logUsage(
+    input: CompleteInput,
+    model: string,
+    latencyMs: number,
+    inT: number,
+    outT: number,
+    ok: boolean,
+    error?: string,
+  ) {
     try {
       await this.prisma.aiUsageLog.create({
         data: {

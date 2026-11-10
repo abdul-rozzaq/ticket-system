@@ -31,7 +31,10 @@ export class ClientGroupsController {
 
   @Roles('ADMIN')
   @Post()
-  create(@Body(new ZodPipe(clientGroupSchema)) body: z.infer<typeof clientGroupSchema>, @CurrentUser() actor: User) {
+  create(
+    @Body(new ZodPipe(clientGroupSchema)) body: z.infer<typeof clientGroupSchema>,
+    @CurrentUser() actor: User,
+  ) {
     return this.groups.create(body, actor.id);
   }
 

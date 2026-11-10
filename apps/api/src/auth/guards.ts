@@ -1,4 +1,11 @@
-import { CanActivate, createParamDecorator, ExecutionContext, HttpStatus, Injectable, SetMetadata } from '@nestjs/common';
+import {
+  CanActivate,
+  createParamDecorator,
+  ExecutionContext,
+  HttpStatus,
+  Injectable,
+  SetMetadata,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { t, type Role } from '@tp/shared';
@@ -24,7 +31,10 @@ export const CurrentUser = createParamDecorator((_: unknown, ctx: ExecutionConte
   return ctx.switchToHttp().getRequest<AuthedRequest>().user;
 });
 
-export const clientCtx = (req: Request) => ({ ip: req.ip ?? null, userAgent: req.headers['user-agent'] ?? null });
+export const clientCtx = (req: Request) => ({
+  ip: req.ip ?? null,
+  userAgent: req.headers['user-agent'] ?? null,
+});
 
 /**
  * Global guard: verifies the bearer token, then loads the user from the DB on every request so that
@@ -45,7 +55,8 @@ export class JwtAuthGuard implements CanActivate {
     const req = ctx.switchToHttp().getRequest<AuthedRequest>();
     const header = req.headers.authorization;
     const token = header?.startsWith('Bearer ') ? header.slice(7) : undefined;
-    const unauthorized = () => new AppError(HttpStatus.UNAUTHORIZED, 'UNAUTHORIZED', t('auth.invalidCredentials'));
+    const unauthorized = () =>
+      new AppError(HttpStatus.UNAUTHORIZED, 'UNAUTHORIZED', t('auth.invalidCredentials'));
     if (!token) throw unauthorized();
     let payload;
     try {
@@ -57,7 +68,10 @@ export class JwtAuthGuard implements CanActivate {
     if (!user || !user.isActive) throw unauthorized();
     req.user = user;
 
-    if (user.mustChangePassword && !this.reflector.getAllAndOverride<boolean>(ALLOW_MUST_CHANGE_KEY, targets)) {
+    if (
+      user.mustChangePassword &&
+      !this.reflector.getAllAndOverride<boolean>(ALLOW_MUST_CHANGE_KEY, targets)
+    ) {
       throw new AppError(HttpStatus.FORBIDDEN, 'MUST_CHANGE_PASSWORD', t('auth.mustChangePassword'));
     }
 

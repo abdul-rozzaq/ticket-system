@@ -1,4 +1,17 @@
-import { Body, Controller, Delete, Get, HttpCode, Injectable, Module, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Injectable,
+  Module,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service';
@@ -60,7 +73,10 @@ export class TemplatesController {
 
   @Roles('ADMIN')
   @Patch(':id')
-  update(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(templateSchema.partial())) body: Partial<z.infer<typeof templateSchema>>) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodPipe(templateSchema.partial())) body: Partial<z.infer<typeof templateSchema>>,
+  ) {
     return this.svc.update(id, body);
   }
 

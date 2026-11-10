@@ -11,7 +11,10 @@ export const usernameSchema = z
 
 export const loginSchema = z.object({ username: usernameSchema, password: z.string().min(1).max(128) });
 export const refreshSchema = z.object({ refreshToken: z.string().min(20).max(200) });
-export const changePasswordSchema = z.object({ currentPassword: z.string().min(1), newPassword: passwordSchema });
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: passwordSchema,
+});
 
 export const workingHoursSchema = z.object({
   tz: z.string().default('Asia/Tashkent'),
@@ -69,7 +72,10 @@ export const ticketFilterSchema = z.object({
 
 export const closeTicketSchema = z.object({ solutionNote: z.string().max(2000).optional() });
 export const setStatusSchema = z.object({ status: z.enum(['IN_PROGRESS', 'WAITING_CLIENT']) });
-export const assignSchema = z.object({ assigneeId: z.string().uuid(), handoverNote: z.string().max(500).optional() });
+export const assignSchema = z.object({
+  assigneeId: z.string().uuid(),
+  handoverNote: z.string().max(500).optional(),
+});
 export const noteSchema = z.object({ text: z.string().min(1).max(2000) });
 
 export const aiClassificationSchema = z.object({

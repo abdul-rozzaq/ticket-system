@@ -40,7 +40,9 @@ export class UsersService implements OnApplicationBootstrap {
         mustChangePassword: true,
       },
     });
-    this.logger.log(`Seeded admin "${this.env.SEED_ADMIN_USERNAME}" (password change required at first login).`);
+    this.logger.log(
+      `Seeded admin "${this.env.SEED_ADMIN_USERNAME}" (password change required at first login).`,
+    );
   }
 
   async list() {
@@ -60,7 +62,13 @@ export class UsersService implements OnApplicationBootstrap {
           workingHours: input.workingHours as Prisma.InputJsonValue | undefined,
         },
       });
-      await this.audit.log({ actorId, action: 'user.create', entity: 'User', entityId: user.id, meta: { role: user.role } });
+      await this.audit.log({
+        actorId,
+        action: 'user.create',
+        entity: 'User',
+        entityId: user.id,
+        meta: { role: user.role },
+      });
       return publicUser(user);
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
@@ -75,15 +83,26 @@ export class UsersService implements OnApplicationBootstrap {
     if (!existing) throw new AppError(HttpStatus.NOT_FOUND, 'NOT_FOUND', 'Foydalanuvchi topilmadi');
     // Guard against locking everybody out.
     if (id === actorId && (input.isActive === false || (input.role && input.role !== 'ADMIN'))) {
-      throw new AppError(HttpStatus.BAD_REQUEST, 'SELF_LOCKOUT', "O'zingizni o'chirib yoki huquqingizni kamaytirib bo'lmaydi");
+      throw new AppError(
+        HttpStatus.BAD_REQUEST,
+        'SELF_LOCKOUT',
+        "O'zingizni o'chirib yoki huquqingizni kamaytirib bo'lmaydi",
+      );
     }
     const { workingHours, ...rest } = input;
     const user = await this.prisma.user.update({
       where: { id },
       data: { ...rest, ...(workingHours ? { workingHours: workingHours as Prisma.InputJsonValue } : {}) },
     });
-    if (input.isActive === false || (input.role && input.role !== existing.role)) await this.auth.revokeAllForUser(id);
-    await this.audit.log({ actorId, action: 'user.update', entity: 'User', entityId: id, meta: { fields: Object.keys(input) } });
+    if (input.isActive === false || (input.role && input.role !== existing.role))
+      await this.auth.revokeAllForUser(id);
+    await this.audit.log({
+      actorId,
+      action: 'user.update',
+      entity: 'User',
+      entityId: id,
+      meta: { fields: Object.keys(input) },
+    });
     return publicUser(user);
   }
 
@@ -104,7 +123,10 @@ export class UsersService implements OnApplicationBootstrap {
     if (!existing) throw new AppError(HttpStatus.NOT_FOUND, 'NOT_FOUND', 'Foydalanuvchi topilmadi');
     const code = this.crypto.randomCode(8);
     const expires = new Date(Date.now() + LINK_CODE_TTL_MS);
-    await this.prisma.user.update({ where: { id }, data: { telegramLinkHash: this.crypto.sha256(code), telegramLinkExpiry: expires } });
+    await this.prisma.user.update({
+      where: { id },
+      data: { telegramLinkHash: this.crypto.sha256(code), telegramLinkExpiry: expires },
+    });
     await this.audit.log({ actorId, action: 'user.telegram_code', entity: 'User', entityId: id });
     return { code, expiresAt: expires };
   }
@@ -112,7 +134,11 @@ export class UsersService implements OnApplicationBootstrap {
   /** Called by the bot (service token): consumes a link code and binds the Telegram user id. */
   async linkTelegram(code: string, telegramUserId: bigint) {
     const user = await this.prisma.user.findFirst({
-      where: { telegramLinkHash: this.crypto.sha256(code.trim().toUpperCase()), telegramLinkExpiry: { gt: new Date() }, isActive: true },
+      where: {
+        telegramLinkHash: this.crypto.sha256(code.trim().toUpperCase()),
+        telegramLinkExpiry: { gt: new Date() },
+        isActive: true,
+      },
     });
     if (!user) return null;
     try {
@@ -120,11 +146,20 @@ export class UsersService implements OnApplicationBootstrap {
         where: { id: user.id },
         data: { telegramUserId, telegramLinkHash: null, telegramLinkExpiry: null },
       });
-      await this.audit.log({ actorId: user.id, action: 'user.telegram_linked', entity: 'User', entityId: user.id });
+      await this.audit.log({
+        actorId: user.id,
+        action: 'user.telegram_linked',
+        entity: 'User',
+        entityId: user.id,
+      });
       return publicUser(updated);
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        throw new AppError(HttpStatus.CONFLICT, 'TELEGRAM_TAKEN', 'Bu Telegram hisobi boshqa xodimga bog\'langan');
+        throw new AppError(
+          HttpStatus.CONFLICT,
+          'TELEGRAM_TAKEN',
+          "Bu Telegram hisobi boshqa xodimga bog'langan",
+        );
       }
       throw e;
     }

@@ -26,7 +26,14 @@ export interface FolderLimits {
 
 export type FolderOp =
   | { op: 'create'; key: string; title: string; chatKeys: string[] }
-  | { op: 'update'; key: string; telegramFilterId: number; title: string; chatKeys: string[]; reason: 'title' | 'chats' | 'both' }
+  | {
+      op: 'update';
+      key: string;
+      telegramFilterId: number;
+      title: string;
+      chatKeys: string[];
+      reason: 'title' | 'chats' | 'both';
+    }
   | { op: 'delete'; key: string; telegramFilterId: number };
 
 export interface FolderPlan {
@@ -36,9 +43,14 @@ export interface FolderPlan {
   degraded: boolean;
 }
 
-const sameSet = (a: string[], b: string[]) => a.length === b.length && [...a].sort().every((v, i) => v === [...b].sort()[i]);
+const sameSet = (a: string[], b: string[]) =>
+  a.length === b.length && [...a].sort().every((v, i) => v === [...b].sort()[i]);
 
-export function planFolderSync(desiredIn: DesiredFolder[], current: CurrentFolder[], limits: FolderLimits): FolderPlan {
+export function planFolderSync(
+  desiredIn: DesiredFolder[],
+  current: CurrentFolder[],
+  limits: FolderLimits,
+): FolderPlan {
   const warnings: string[] = [];
   let degraded = false;
   const budget = Math.max(0, limits.maxFolders - limits.foreignFolderCount);
@@ -62,10 +74,15 @@ export function planFolderSync(desiredIn: DesiredFolder[], current: CurrentFolde
 
   desired = desired.map((d) => {
     if (d.chatKeys.length <= limits.maxChatsPerFolder) {
-      if (d.chatKeys.length >= limits.maxChatsPerFolder * 0.9) warnings.push(`"${d.title}" papkasi to'lib qolmoqda (${d.chatKeys.length}/${limits.maxChatsPerFolder}).`);
+      if (d.chatKeys.length >= limits.maxChatsPerFolder * 0.9)
+        warnings.push(
+          `"${d.title}" papkasi to'lib qolmoqda (${d.chatKeys.length}/${limits.maxChatsPerFolder}).`,
+        );
       return d;
     }
-    warnings.push(`"${d.title}" papkasida ${d.chatKeys.length} ta chat bor, limit ${limits.maxChatsPerFolder}: ortiqchasi kesildi.`);
+    warnings.push(
+      `"${d.title}" papkasida ${d.chatKeys.length} ta chat bor, limit ${limits.maxChatsPerFolder}: ortiqchasi kesildi.`,
+    );
     return { ...d, chatKeys: d.chatKeys.slice(0, limits.maxChatsPerFolder) };
   });
 
@@ -74,7 +91,8 @@ export function planFolderSync(desiredIn: DesiredFolder[], current: CurrentFolde
   const ops: FolderOp[] = [];
 
   // Deletions first: they free quota for creations.
-  for (const c of current) if (!want.has(c.key)) ops.push({ op: 'delete', key: c.key, telegramFilterId: c.telegramFilterId });
+  for (const c of current)
+    if (!want.has(c.key)) ops.push({ op: 'delete', key: c.key, telegramFilterId: c.telegramFilterId });
   for (const d of desired) {
     const c = cur.get(d.key);
     if (!c) {
@@ -98,7 +116,11 @@ export function planFolderSync(desiredIn: DesiredFolder[], current: CurrentFolde
 }
 
 /** Which folder should a customer chat with an open ticket be in? Exactly one, or none for closed tickets. */
-export function folderKeyForTicket(t: { status: string; assigneeId: string | null; overdue: boolean }): string | null {
+export function folderKeyForTicket(t: {
+  status: string;
+  assigneeId: string | null;
+  overdue: boolean;
+}): string | null {
   if (t.status === 'CLOSED') return null;
   if (t.overdue) return 'OVERDUE';
   if (t.status === 'WAITING_CLIENT') return 'WAITING';

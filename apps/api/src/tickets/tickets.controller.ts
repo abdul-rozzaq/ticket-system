@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { User } from '@prisma/client';
 import { assignSchema, closeTicketSchema, noteSchema, setStatusSchema, ticketFilterSchema } from '@tp/shared';
@@ -31,7 +41,8 @@ export class TicketsController {
   @Get('by-chat/:chatId')
   async byChat(@Param('chatId') chatId: string) {
     const group = await this.groups.findByChatId(decodeURIComponent(chatId));
-    if (!group) throw new AppError(HttpStatus.NOT_FOUND, 'NOT_FOUND', 'Bu chat mijoz guruhi sifatida topilmadi');
+    if (!group)
+      throw new AppError(HttpStatus.NOT_FOUND, 'NOT_FOUND', 'Bu chat mijoz guruhi sifatida topilmadi');
     return { group, ...(await this.tickets.forGroup(group.id)) };
   }
 
@@ -42,9 +53,21 @@ export class TicketsController {
 
   /** Manual creation (e.g. from a filtered message or when intake missed something). */
   @Post()
-  async create(@Body(new ZodPipe(createSchema)) body: z.infer<typeof createSchema>, @CurrentUser() actor: User) {
-    const r = await this.tickets.createTicket({ clientGroupId: body.clientGroupId, text: body.text, actorId: actor.id });
-    await this.audit.log({ actorId: actor.id, action: 'ticket.create', entity: 'Ticket', entityId: r.ticket.id });
+  async create(
+    @Body(new ZodPipe(createSchema)) body: z.infer<typeof createSchema>,
+    @CurrentUser() actor: User,
+  ) {
+    const r = await this.tickets.createTicket({
+      clientGroupId: body.clientGroupId,
+      text: body.text,
+      actorId: actor.id,
+    });
+    await this.audit.log({
+      actorId: actor.id,
+      action: 'ticket.create',
+      entity: 'Ticket',
+      entityId: r.ticket.id,
+    });
     return r;
   }
 
@@ -63,7 +86,13 @@ export class TicketsController {
     @CurrentUser() actor: User,
   ) {
     const tk = await this.tickets.assign(id, body.assigneeId, actor.id, body.handoverNote);
-    await this.audit.log({ actorId: actor.id, action: 'ticket.assign', entity: 'Ticket', entityId: id, meta: { to: body.assigneeId } });
+    await this.audit.log({
+      actorId: actor.id,
+      action: 'ticket.assign',
+      entity: 'Ticket',
+      entityId: id,
+      meta: { to: body.assigneeId },
+    });
     return tk;
   }
 
@@ -91,15 +120,29 @@ export class TicketsController {
 
   @HttpCode(204)
   @Post(':id/note')
-  async note(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(noteSchema)) body: z.infer<typeof noteSchema>, @CurrentUser() actor: User) {
+  async note(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodPipe(noteSchema)) body: z.infer<typeof noteSchema>,
+    @CurrentUser() actor: User,
+  ) {
     await this.tickets.addNote(id, body.text, actor.id);
   }
 
   @HttpCode(200)
   @Post(':id/merge')
-  async merge(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodPipe(mergeSchema)) body: z.infer<typeof mergeSchema>, @CurrentUser() actor: User) {
+  async merge(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodPipe(mergeSchema)) body: z.infer<typeof mergeSchema>,
+    @CurrentUser() actor: User,
+  ) {
     const tk = await this.tickets.merge(id, body.targetId, actor.id);
-    await this.audit.log({ actorId: actor.id, action: 'ticket.merge', entity: 'Ticket', entityId: id, meta: { into: body.targetId } });
+    await this.audit.log({
+      actorId: actor.id,
+      action: 'ticket.merge',
+      entity: 'Ticket',
+      entityId: id,
+      meta: { into: body.targetId },
+    });
     return tk;
   }
 }

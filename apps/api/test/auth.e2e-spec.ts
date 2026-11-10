@@ -23,7 +23,10 @@ describe('auth + users (e2e)', () => {
     expect(r.status).toBe(401);
     expect(r.body).toMatchObject({ statusCode: 401, code: 'INVALID_CREDENTIALS' });
     expect(r.body.correlationId).toBeTruthy();
-    const unknown = await ctx.http().post('/api/v1/auth/login').send({ username: 'ghost', password: 'whatever' });
+    const unknown = await ctx
+      .http()
+      .post('/api/v1/auth/login')
+      .send({ username: 'ghost', password: 'whatever' });
     expect(unknown.body.code).toBe('INVALID_CREDENTIALS'); // same answer: no user enumeration
   });
 
@@ -58,7 +61,9 @@ describe('auth + users (e2e)', () => {
     expect(ok.status).toBe(200);
     expect((await ctx.http().get('/api/v1/users').set(bearer(ok.body.accessToken))).status).toBe(200);
     // the old refresh token died with the password change
-    expect((await ctx.http().post('/api/v1/auth/refresh').send({ refreshToken: l.refreshToken })).status).toBe(401);
+    expect(
+      (await ctx.http().post('/api/v1/auth/refresh').send({ refreshToken: l.refreshToken })).status,
+    ).toBe(401);
   });
 
   it('rotates refresh tokens and revokes the family when an old one is reused', async () => {
@@ -73,7 +78,10 @@ describe('auth + users (e2e)', () => {
     // replay of the first token => theft assumed => whole family revoked
     const replay = await ctx.http().post('/api/v1/auth/refresh').send({ refreshToken: l.refreshToken });
     expect(replay.status).toBe(401);
-    const afterReplay = await ctx.http().post('/api/v1/auth/refresh').send({ refreshToken: r1.body.refreshToken });
+    const afterReplay = await ctx
+      .http()
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: r1.body.refreshToken });
     expect(afterReplay.status).toBe(401);
     const audit = await ctx.prisma.auditLog.findMany({ where: { action: 'auth.refresh_reuse' } });
     expect(audit.length).toBeGreaterThanOrEqual(1); // the replayed token and the already-revoked successor are both flagged
@@ -92,8 +100,12 @@ describe('auth + users (e2e)', () => {
   it('logout revokes the refresh token family', async () => {
     await adminToken(ctx);
     const l = await ctx.login(ADMIN.username, 'Changed-pass-12345');
-    expect((await ctx.http().post('/api/v1/auth/logout').send({ refreshToken: l.refreshToken })).status).toBe(204);
-    expect((await ctx.http().post('/api/v1/auth/refresh').send({ refreshToken: l.refreshToken })).status).toBe(401);
+    expect((await ctx.http().post('/api/v1/auth/logout').send({ refreshToken: l.refreshToken })).status).toBe(
+      204,
+    );
+    expect(
+      (await ctx.http().post('/api/v1/auth/refresh').send({ refreshToken: l.refreshToken })).status,
+    ).toBe(401);
   });
 
   it('locks the account after repeated failures, even for the correct password', async () => {
@@ -118,7 +130,11 @@ describe('auth + users (e2e)', () => {
     expect(created.body.passwordHash).toBeUndefined();
     expect(created.body.mustChangePassword).toBe(true);
 
-    const dup = await ctx.http().post('/api/v1/users').set(bearer(admin)).send({ username: 'ali', displayName: 'x', password: 'Temp-password-1' });
+    const dup = await ctx
+      .http()
+      .post('/api/v1/users')
+      .set(bearer(admin))
+      .send({ username: 'ali', displayName: 'x', password: 'Temp-password-1' });
     expect(dup.status).toBe(409);
 
     // staff logs in, must change the password, then is still forbidden from admin routes
@@ -134,13 +150,23 @@ describe('auth + users (e2e)', () => {
 
     // deactivation kills access immediately (even with a still-valid access token)
     const id = created.body.id as string;
-    expect((await ctx.http().patch(`/api/v1/users/${id}`).set(bearer(admin)).send({ isActive: false })).status).toBe(200);
+    expect(
+      (await ctx.http().patch(`/api/v1/users/${id}`).set(bearer(admin)).send({ isActive: false })).status,
+    ).toBe(200);
     expect((await ctx.http().get('/api/v1/auth/me').set(bearer(changed.body.accessToken))).status).toBe(401);
     expect((await ctx.login('ali', 'Staff-new-pass-1')).status).toBe(401);
 
     // admin reset puts the user back into forced-change state
     await ctx.http().patch(`/api/v1/users/${id}`).set(bearer(admin)).send({ isActive: true });
-    expect((await ctx.http().post(`/api/v1/users/${id}/reset-password`).set(bearer(admin)).send({ newPassword: 'Reset-pass-12345' })).status).toBe(204);
+    expect(
+      (
+        await ctx
+          .http()
+          .post(`/api/v1/users/${id}/reset-password`)
+          .set(bearer(admin))
+          .send({ newPassword: 'Reset-pass-12345' })
+      ).status,
+    ).toBe(204);
     const again = await ctx.login('ali', 'Reset-pass-12345');
     expect(again.body.user.mustChangePassword).toBe(true);
   });
@@ -155,7 +181,11 @@ describe('auth + users (e2e)', () => {
 
   it('issues a one-time Telegram link code that is stored hashed', async () => {
     const admin = await adminToken(ctx);
-    const u = await ctx.http().post('/api/v1/users').set(bearer(admin)).send({ username: 'vali', displayName: 'Vali', password: 'Temp-password-1' });
+    const u = await ctx
+      .http()
+      .post('/api/v1/users')
+      .set(bearer(admin))
+      .send({ username: 'vali', displayName: 'Vali', password: 'Temp-password-1' });
     const code = await ctx.http().post(`/api/v1/users/${u.body.id}/telegram-code`).set(bearer(admin));
     expect(code.body.code).toMatch(/^[A-Z2-9]{8}$/);
     const row = await ctx.prisma.user.findUniqueOrThrow({ where: { id: u.body.id } });
