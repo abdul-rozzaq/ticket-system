@@ -1,0 +1,49 @@
+name: ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env: { POSTGRES_USER: tp, POSTGRES_PASSWORD: tp, POSTGRES_DB: tp_test }
+        ports: ['55432:5432']
+        options: >-
+          --health-cmd "pg_isready -U tp" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql://tp:tp@localhost:55432/tp_test?schema=public
+      DATABASE_URL: postgresql://tp:tp@localhost:55432/tp_test?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @tp/shared build
+      - run: pnpm --filter @tp/api exec prisma generate
+      - run: pnpm --filter @tp/api exec prisma migrate deploy
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm --filter @tp/api test:e2e
+
+  images:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.REGISTRY_URL }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/Dockerfile.api
+          push: true
+          tags: ${{ secrets.REGISTRY_URL }}/tp/api:${{ github.sha }},${{ secrets.REGISTRY_URL }}/tp/api:latest
