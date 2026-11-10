@@ -11,23 +11,33 @@ const silent: Logger = { info() {}, warn: (m) => console.warn(m), error: (m) => 
 
 async function main() {
   const { API_URL = 'http://localhost:3000', SERVICE_TOKEN, TG_API_ID, TG_API_HASH } = process.env;
+
   if (!SERVICE_TOKEN || !TG_API_ID || !TG_API_HASH)
     throw new Error('Set SERVICE_TOKEN, TG_API_ID and TG_API_HASH');
+
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   const client = new GramjsClient({ apiId: Number(TG_API_ID), apiHash: TG_API_HASH, logger: silent });
   const api = new ApiClient({ baseUrl: API_URL, serviceToken: SERVICE_TOKEN, logger: silent });
 
   const phone = (await rl.question('Phone number (international format, e.g. +998901234567): ')).trim();
+
   await client.sendCode(phone);
+
   const code = (await rl.question('Code sent by Telegram: ')).trim();
+
   let r = await client.submitCode(code);
+
   if ('needPassword' in r) {
     const password = await rl.question('2FA password: ');
     r = await client.submitPassword(password);
   }
+
   await api.putSession(r.session, r.phone ?? phone);
+
   console.log('Logged in. The session was stored (encrypted) by the API. Start the userbot service now.');
+
   await client.stop();
+
   rl.close();
 }
 

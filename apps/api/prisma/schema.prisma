@@ -444,7 +444,10 @@ model Reminder {
   id       String    @id @default(uuid()) @db.Uuid
   ticketId String?   @db.Uuid
   userId   String?   @db.Uuid
+  /// UNASSIGNED | ASSIGNED_STALE | WAITING | OVERDUE | DIGEST | SNOOZE
   kind     String
+  /// Dedupe key: the same reminder is never created twice (e.g. "UNASSIGNED:<ticketId>:2", "DIGEST:<userId>:2026-11-10").
+  key      String?   @unique
   dueAt    DateTime
   sentAt   DateTime?
   payload  Json      @default("{}")
@@ -464,4 +467,21 @@ model StaffActivity {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([chatId, ts])
+}
+
+/// Messages the internal bot must send/edit in Telegram. The bot process long-polls this through the API.
+model BotOutbox {
+  id        String    @id @default(uuid()) @db.Uuid
+  /// SEND_CARD | EDIT_CARD | SEND_TEXT
+  kind      String
+  payload   Json
+  /// PENDING | CLAIMED | DONE | FAILED
+  status    String    @default("PENDING")
+  result    Json?
+  attempts  Int       @default(0)
+  createdAt DateTime  @default(now())
+  claimedAt DateTime?
+  doneAt    DateTime?
+
+  @@index([status, createdAt])
 }

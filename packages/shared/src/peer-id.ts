@@ -86,3 +86,12 @@ export function parseStoredPeer(key: string): PeerRef | null {
   };
   return mk(kinds[m[1]], m[2]);
 }
+
+/**
+ * https://t.me link to a group message that members can open (works for supergroups/channels: t.me/c/<id>/<msg>).
+ * Basic groups have no stable link, so null is returned.
+ */
+export function toTmeLink(ref: PeerRef, messageId?: string | number): string | null {
+  if (ref.kind !== 'channel') return null;
+  return `https://t.me/c/${ref.id}${messageId ? `/${messageId}` : '/1'}`;
+}

@@ -243,11 +243,20 @@ export class TicketsService {
    * "Men olaman": the first valid press wins. The UPDATE ... WHERE assigneeId IS NULL is the arbiter, so two staff
    * pressing at the same moment can never both succeed. Pressing again as the winner is an idempotent no-op.
    */
-  async take(ticketId: string, userId: string): Promise<{ ticket: Ticket; won: boolean }> {
-    await this.requireActiveUser(userId);
+  /** "Men olaman": claim the ticket for yourself. */
+  take(ticketId: string, userId: string): Promise<{ ticket: Ticket; won: boolean }> {
+    return this.claim(ticketId, userId, userId);
+  }
+
+  async claim(
+    ticketId: string,
+    assigneeId: string,
+    actorId: string | null,
+  ): Promise<{ ticket: Ticket; won: boolean }> {
+    await this.requireActiveUser(assigneeId);
     const r = await this.prisma.ticket.updateMany({
       where: { id: ticketId, assigneeId: null, status: { not: 'CLOSED' } },
-      data: { assigneeId: userId },
+      data: { assigneeId },
     });
     const ticket = await this.requireTicket(ticketId);
     if (r.count === 1) {
@@ -256,20 +265,23 @@ export class TicketsService {
           ticket.status === 'NEW'
             ? await tx.ticket.update({ where: { id: ticketId }, data: { status: 'IN_PROGRESS' } })
             : ticket;
-        await this.ev(tx, ticketId, 'ASSIGNED', userId, { assigneeId: userId, via: 'take' });
+        await this.ev(tx, ticketId, 'ASSIGNED', actorId, {
+          assigneeId,
+          via: actorId === assigneeId ? 'take' : 'assign',
+        });
         if (ticket.status === 'NEW')
-          await this.ev(tx, ticketId, 'STATUS_CHANGED', userId, { from: 'NEW', to: 'IN_PROGRESS' });
+          await this.ev(tx, ticketId, 'STATUS_CHANGED', actorId, { from: 'NEW', to: 'IN_PROGRESS' });
         return row;
       });
       this.events.emit('ticket.assigned', {
         ...snapshot(updated),
         previousAssigneeId: null,
-        actorId: userId,
+        actorId,
       });
       return { ticket: updated, won: true };
     }
     if (ticket.status === 'CLOSED') throw new AppError(HttpStatus.CONFLICT, 'CLOSED', t('ticket.closed'));
-    if (ticket.assigneeId === userId) return { ticket, won: true }; // idempotent
+    if (ticket.assigneeId === assigneeId) return { ticket, won: true }; // idempotent
     const owner = ticket.assigneeId
       ? await this.prisma.user.findUnique({ where: { id: ticket.assigneeId } })
       : null;

@@ -13,6 +13,7 @@ import { TemplatesModule } from './templates/templates.module';
 import { RealtimeModule } from './realtime/realtime.gateway';
 import { AiModule } from './ai/ai.controller';
 import { IntakeModule } from './intake/intake.module';
+import { BotModule } from './bot/bot.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -31,6 +32,7 @@ import { HealthController } from './health/health.controller';
     RealtimeModule,
     AiModule,
     IntakeModule,
+    BotModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

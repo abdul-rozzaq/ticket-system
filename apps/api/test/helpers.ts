@@ -20,7 +20,8 @@ export function setTestEnv() {
     LOCKOUT_MAX_FAILURES: '5',
     LOGIN_RATE_LIMIT: '1000',
     SERVICE_TOKEN: SERVICE_TOKEN,
-    INTAKE_POLL_MS: '0', // tests drive processDue() explicitly
+    INTAKE_POLL_MS: '0',
+    BOT_POLL_MS: '0', // tests drive processDue() explicitly
   });
 }
 
@@ -56,7 +57,7 @@ export async function createTestApp(opts: { classifier?: unknown } = {}): Promis
     svc: () => ({ 'x-service-token': SERVICE_TOKEN }),
     async reset() {
       await prisma.$executeRawUnsafe(
-        `TRUNCATE "TicketEvent","TicketMessage","Reminder","Ticket","FilteredMessage","ClientGroup","SlaPolicy","StaffActivity","RefreshToken","LoginAttempt","AuditLog","Template","KbChunk","KbArticle","IntakeBuffer","UserbotCommand","UserbotSession","AiUsageLog","AiProvider","Setting","User" RESTART IDENTITY CASCADE`,
+        `TRUNCATE "TicketEvent","TicketMessage","Reminder","Ticket","FilteredMessage","ClientGroup","SlaPolicy","StaffActivity","RefreshToken","LoginAttempt","AuditLog","Template","KbChunk","KbArticle","IntakeBuffer","UserbotCommand","UserbotSession","BotOutbox","AiUsageLog","AiProvider","Setting","User" RESTART IDENTITY CASCADE`,
       );
       await prisma.$executeRawUnsafe(
         `UPDATE "AiSettings" SET "providerId" = NULL, "classifyModel" = '', "draftModel" = '', "summaryModel" = '', "embeddingModel" = '', "prompts" = '{}', "monthlyBudgetUsd" = 50, "hardStop" = true WHERE id = 1`,
