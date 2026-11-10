@@ -77,6 +77,14 @@ export const DEFAULT_SETTINGS = {
    * (tabs stay put); 'remove' deletes empty folders and re-creates them when the first chat arrives.
    */
   'funnel.emptyFolders': 'placeholder',
+  /** Knowledge base retrieval. */
+  'kb.topK': 3,
+  /** Minimum share of the question's terms that must appear in an article (see isRelevant). */
+  'kb.minRelevance': 0.3,
+  /** Cosine distance above which a vector hit is ignored (depends on the embedding model; tune per model). */
+  'kb.maxVectorDistance': 0.45,
+  /** A closed ticket's solution note must be at least this long to seed a KB draft. */
+  'kb.growthMinNoteChars': 15,
   'commands.deleteAfterUse': true,
   'reactions.enabled': true,
   'activity.pingEnabled': true,

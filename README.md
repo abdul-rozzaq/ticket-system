@@ -116,3 +116,14 @@ in-memory fake Telegram client for smoke tests. **Use a throwaway account first;
 - The folders are visible to everyone who uses the shared TP account (intended: each person opens their own tab). **Telegram Premium
   is recommended** (20 folders / 200 chats per folder instead of 10 / 100). We only ever modify folders we created; to recover from a
   database restore, delete the old funnel folders by hand and sync again.
+
+## Knowledge base and AI drafts
+
+- KB: `GET/POST/PATCH/DELETE /api/v1/kb`, approval queue `GET /kb?status=DRAFT` + `POST /kb/:id/approve|reject`, `POST /kb/reindex`,
+  `GET /kb/stats`, quick search `GET /kb/search?q=` (approved only). Only APPROVED articles ever answer questions.
+- Drafts: `POST /api/v1/ai/draft {chatId, messageId?}` -> `{draft, sources, notFound, mode, masked}`; `.ai` typed by staff in a customer chat
+  delivers the draft over Socket.IO (`/events`, event `draft.ready`).
+- AI configuration (admin): provider, per-task models (`classifyModel`, `draftModel`, `summaryModel`, `embeddingModel`), prompts, monthly
+  budget — see `PUT /api/v1/ai/provider` and `PUT /api/v1/ai/settings`. **Embeddings need an OpenAI-compatible provider** (Anthropic has no
+  embeddings API; the KB then uses full-text search). The embedding model must return, or be able to shorten to, **1536 dimensions**.
+- Settings (`PUT /api/v1/settings`): `kb.topK`, `kb.minRelevance`, `kb.maxVectorDistance` (tune per embedding model), `kb.growthMinNoteChars`.

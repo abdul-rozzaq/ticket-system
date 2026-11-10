@@ -59,6 +59,11 @@ export class RealtimeGateway implements OnGatewayConnection, OnModuleInit, OnMod
           });
       }),
     ];
+    this.unsubscribe.push(
+      this.events.on('draft.ready', (p) =>
+        to(p.userId ? `user:${p.userId}` : 'staff', WS_EVENTS.draftReady, p.draft),
+      ),
+    );
     this.logger.log('realtime gateway ready');
   }
 

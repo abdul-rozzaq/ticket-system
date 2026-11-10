@@ -201,7 +201,15 @@ export class TicketsService {
         });
       }
     });
-    this.events.emit('ticket.message', { ticketId, direction: m.direction, isFirstResponse: firstResponse });
+    this.events.emit('ticket.message', {
+      ticketId,
+      direction: m.direction,
+      isFirstResponse: firstResponse,
+      text: m.direction === 'OUT' ? m.text : undefined,
+      answeredById: m.answeredById ?? null,
+      sentAt: m.sentAt,
+      isInternalNote: m.isInternalNote ?? false,
+    });
     return { duplicate: false, firstResponse };
   }
 

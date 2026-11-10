@@ -7,3 +7,4 @@ export * from './peer-id';
 export * from './prompts';
 export * from './schemas';
 export * from './sla';
+export * from './text-utils';

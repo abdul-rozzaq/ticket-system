@@ -12,6 +12,9 @@ import {
   withRetry,
 } from './adapters';
 
+/** pgvector column size of KbChunk.embedding. */
+export const EMBEDDING_DIMENSIONS = 1536;
+
 export class AiNotConfiguredError extends Error {}
 export class AiBudgetExceededError extends Error {}
 export class AiOutputError extends Error {}
@@ -80,7 +83,7 @@ export class AiService extends IntakeClassifier {
         ? settings?.classifyModel
         : input.task === 'draft'
           ? settings?.draftModel
-          : settings?.summaryModel;
+          : settings?.summaryModel || settings?.draftModel; // summary / kb_article
     if (!settings || !provider?.isActive || !model)
       throw new AiNotConfiguredError('AI provider/model is not configured');
 
@@ -123,6 +126,91 @@ export class AiService extends IntakeClassifier {
     } catch (e) {
       this.breaker.onFailure();
       await this.logUsage(input, model, Date.now() - t0, 0, 0, false, String(e));
+      throw e;
+    }
+  }
+
+  /** Is there an active provider and a model for this task? (cheap check used to pick LLM vs extractive mode) */
+  async isConfigured(task: 'classify' | 'draft' | 'summary' | 'embedding'): Promise<boolean> {
+    const settings = await this.prisma.aiSettings.findUnique({ where: { id: 1 } });
+    if (!settings?.providerId) return false;
+    const provider = await this.prisma.aiProvider.findUnique({ where: { id: settings.providerId } });
+    if (!provider?.isActive) return false;
+    if (task === 'embedding') return provider.type === 'OPENAI_COMPATIBLE' && !!settings.embeddingModel;
+    const model =
+      task === 'classify'
+        ? settings.classifyModel
+        : task === 'draft'
+          ? settings.draftModel
+          : settings.summaryModel || settings.draftModel;
+    return !!model;
+  }
+
+  /**
+   * Embeds texts with the configured embedding model. Returns null when embeddings are not available (no provider, no
+   * model, or an Anthropic provider: Anthropic has no embeddings API) so callers fall back to full-text search.
+   * Vectors must be 1536-dimensional (the pgvector column); text-embedding-3 models are asked to shorten to 1536.
+   */
+  async embed(texts: string[]): Promise<number[][] | null> {
+    if (!texts.length) return [];
+    const settings = await this.prisma.aiSettings.findUnique({ where: { id: 1 } });
+    const provider = settings?.providerId
+      ? await this.prisma.aiProvider.findUnique({ where: { id: settings.providerId } })
+      : null;
+    if (!settings || !provider?.isActive || !settings.embeddingModel || provider.type !== 'OPENAI_COMPATIBLE')
+      return null;
+    if (
+      settings.hardStop &&
+      settings.monthlyBudgetUsd > 0 &&
+      (await this.monthSpendUsd()) >= settings.monthlyBudgetUsd
+    ) {
+      throw new AiBudgetExceededError('monthly AI budget exhausted');
+    }
+    if (this.breaker.isOpen) throw new LlmError('AI circuit breaker is open', undefined, false);
+    const adapter = this.adapterFactory(
+      provider.type,
+      this.crypto.decrypt(provider.apiKeyEnc),
+      provider.baseUrl,
+    );
+    if (!adapter.embed) return null;
+    const t0 = Date.now();
+    try {
+      const res = await withRetry(
+        () =>
+          adapter.embed!({
+            model: settings.embeddingModel,
+            input: texts,
+            dimensions: /text-embedding-3/.test(settings.embeddingModel) ? EMBEDDING_DIMENSIONS : undefined,
+            timeoutMs: 20_000,
+          }),
+        { retries: 2, baseMs: 400, sleep: this.sleep },
+      );
+      this.breaker.onSuccess();
+      if (res.vectors.some((v) => v.length !== EMBEDDING_DIMENSIONS)) {
+        throw new AiOutputError(
+          `embedding model returned ${res.vectors[0]?.length ?? 0} dimensions, the knowledge base needs ${EMBEDDING_DIMENSIONS}`,
+        );
+      }
+      await this.logUsage(
+        { task: 'embedding', user: '' },
+        settings.embeddingModel,
+        Date.now() - t0,
+        res.tokens,
+        0,
+        true,
+      );
+      return res.vectors;
+    } catch (e) {
+      if (!(e instanceof AiOutputError)) this.breaker.onFailure();
+      await this.logUsage(
+        { task: 'embedding', user: '' },
+        settings.embeddingModel,
+        Date.now() - t0,
+        0,
+        0,
+        false,
+        String(e),
+      );
       throw e;
     }
   }

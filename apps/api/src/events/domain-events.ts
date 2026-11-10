@@ -23,7 +23,18 @@ export interface DomainEventMap {
   'ticket.closed': TicketSnapshot & { solutionNote: string | null; actorId: string | null };
   'user.deactivated': { userId: string };
   'ai.requested': { ticketId: string; chatId: string; actorId: string | null; messageId: string | null };
-  'ticket.message': { ticketId: string; direction: 'IN' | 'OUT'; isFirstResponse: boolean };
+  'ticket.message': {
+    ticketId: string;
+    direction: 'IN' | 'OUT';
+    isFirstResponse: boolean;
+    /** Present for outgoing messages: used to tell what staff did with an AI draft. */
+    text?: string;
+    answeredById?: string | null;
+    sentAt?: Date;
+    isInternalNote?: boolean;
+  };
+  /** A reply draft is ready for a staff member (delivered over the WebSocket). userId null = nobody attributed: show to all staff. */
+  'draft.ready': { userId: string | null; draft: Record<string, unknown> };
 }
 
 /**

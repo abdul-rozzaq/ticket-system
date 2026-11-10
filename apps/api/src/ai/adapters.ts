@@ -13,8 +13,22 @@ export interface LlmResult {
   inputTokens: number;
   outputTokens: number;
 }
+export interface EmbedRequest {
+  model: string;
+  input: string[];
+  /** Only sent for models that support shortening (text-embedding-3-*). */
+  dimensions?: number;
+  timeoutMs: number;
+}
+export interface EmbedResult {
+  vectors: number[][];
+  tokens: number;
+}
+
 export interface LlmAdapter {
   complete(req: LlmRequest): Promise<LlmResult>;
+  /** Optional: only OpenAI-compatible providers offer embeddings (Anthropic has no embeddings API). */
+  embed?(req: EmbedRequest): Promise<EmbedResult>;
 }
 
 /** Error carrying an HTTP-ish status so the retry policy can tell transient failures from permanent ones. */
@@ -116,6 +130,41 @@ export class OpenAiCompatAdapter implements LlmAdapter {
       text: String(json.choices?.[0]?.message?.content ?? '').trim(),
       inputTokens: json.usage?.prompt_tokens ?? 0,
       outputTokens: json.usage?.completion_tokens ?? 0,
+    };
+  }
+
+  async embed(req: EmbedRequest): Promise<EmbedResult> {
+    const url = `${this.baseUrl.replace(/\/+$/, '')}/embeddings`;
+    let res: Response;
+    try {
+      res = await this.fetchImpl(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${this.apiKey}` },
+        body: JSON.stringify({
+          model: req.model,
+          input: req.input,
+          ...(req.dimensions ? { dimensions: req.dimensions } : {}),
+        }),
+        signal: AbortSignal.timeout(req.timeoutMs),
+      });
+    } catch (e) {
+      throw new LlmError(`embeddings request failed: ${String(e)}`.slice(0, 300), undefined, true);
+    }
+    if (!res.ok) {
+      const body = (await res.text().catch(() => '')).slice(0, 200);
+      throw new LlmError(`${res.status}: ${body}`, res.status, res.status === 429 || res.status >= 500);
+    }
+    const json = (await res.json()) as {
+      data?: Array<{ embedding?: number[]; index?: number }>;
+      usage?: { prompt_tokens?: number; total_tokens?: number };
+    };
+    const rows = [...(json.data ?? [])].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+    if (rows.length !== req.input.length || rows.some((r) => !Array.isArray(r.embedding))) {
+      throw new LlmError('embeddings response had an unexpected shape', 200, false);
+    }
+    return {
+      vectors: rows.map((r) => r.embedding as number[]),
+      tokens: json.usage?.prompt_tokens ?? json.usage?.total_tokens ?? 0,
     };
   }
 }

@@ -58,7 +58,7 @@ export async function createTestApp(opts: { classifier?: unknown } = {}): Promis
     svc: () => ({ 'x-service-token': SERVICE_TOKEN }),
     async reset() {
       await prisma.$executeRawUnsafe(
-        `TRUNCATE "TicketEvent","TicketMessage","Reminder","Ticket","FilteredMessage","ClientGroup","SlaPolicy","StaffActivity","RefreshToken","LoginAttempt","AuditLog","Template","KbChunk","KbArticle","IntakeBuffer","UserbotCommand","UserbotSession","BotOutbox","FolderOperation","TelegramFolderState","Funnel","AiUsageLog","AiProvider","Setting","User" RESTART IDENTITY CASCADE`,
+        `TRUNCATE "TicketEvent","TicketMessage","Reminder","Ticket","FilteredMessage","ClientGroup","SlaPolicy","StaffActivity","RefreshToken","LoginAttempt","AuditLog","Template","KbChunk","KbArticle","IntakeBuffer","UserbotCommand","UserbotSession","BotOutbox","FolderOperation","TelegramFolderState","Funnel","AiDraft","AiUsageLog","AiProvider","Setting","User" RESTART IDENTITY CASCADE`,
       );
       await prisma.$executeRawUnsafe(
         `UPDATE "AiSettings" SET "providerId" = NULL, "classifyModel" = '', "draftModel" = '', "summaryModel" = '', "embeddingModel" = '', "prompts" = '{}', "monthlyBudgetUsd" = 50, "hardStop" = true WHERE id = 1`,

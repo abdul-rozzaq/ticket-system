@@ -317,6 +317,31 @@ model KbChunk {
   @@index([articleId])
 }
 
+/// A generated reply draft (for staff to review and send). Kept to measure "sent unchanged vs edited".
+model AiDraft {
+  id            String    @id @default(uuid()) @db.Uuid
+  clientGroupId String    @db.Uuid
+  ticketId      String?   @db.Uuid
+  /// Staff member the draft was generated for (who typed .ai / pressed the button), if known.
+  userId        String?   @db.Uuid
+  /// The customer message the draft answers (Telegram message id), if one was selected.
+  sourceMessageId BigInt?
+  /// null when nothing relevant was found.
+  text          String?
+  notFound      Boolean   @default(false)
+  /// llm | extractive
+  mode          String    @default("extractive")
+  /// [{ type: "article" | "template", id, title, score }]
+  sources       Json      @default("[]")
+  createdAt     DateTime  @default(now())
+  /// UNCHANGED | EDITED | DISCARDED, set when we can tell what the human did with it.
+  outcome       String?
+  resolvedAt    DateTime?
+
+  @@index([clientGroupId, createdAt])
+  @@index([createdAt])
+}
+
 model AiProvider {
   id         String   @id @default(uuid()) @db.Uuid
   /// ANTHROPIC | OPENAI_COMPATIBLE

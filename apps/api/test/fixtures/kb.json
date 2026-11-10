@@ -1,0 +1,106 @@
+[
+  {
+    "key": "kb01",
+    "lang": "uz",
+    "systemType": "AMOCRM",
+    "problem": "Webhook ulanmadi, lidlar AmoCRMga tushmayapti",
+    "solution": "Sozlamalar → Integratsiyalar → Webhooks bo'limida manzil https bilan boshlanishini va faol ekanini tekshiring. Server 200 javob qaytarishi kerak, aks holda AmoCRM webhookni o'chirib qo'yadi.",
+    "tags": ["webhook", "lid", "integratsiya"]
+  },
+  {
+    "key": "kb02",
+    "lang": "ru",
+    "systemType": "AMOCRM",
+    "problem": "Вебхук не работает, сделки не приходят в amoCRM",
+    "solution": "Проверьте URL вебхука в Настройки → Интеграции → Webhooks: он должен быть https и отвечать кодом 200. После 100 ошибок подряд amoCRM отключает вебхук.",
+    "tags": ["webhook", "вебхук", "сделка"]
+  },
+  {
+    "key": "kb03",
+    "lang": "uz",
+    "systemType": "AMOCRM",
+    "problem": "Salesbot xabar yubormayapti",
+    "solution": "Salesbot to'xtatilgan bo'lishi mumkin. Voronka → Avtomatlashtirish → Salesbot ni o'chirib qayta yoqing, kanal (WhatsApp/Telegram) ulanganini tekshiring.",
+    "tags": ["salesbot", "bot", "xabar"]
+  },
+  {
+    "key": "kb04",
+    "lang": "uz",
+    "systemType": "AMOCRM",
+    "problem": "Bitta lid ikki marta tushyapti (dublikat)",
+    "solution": "Sozlamalar → Dublikatlar nazorati bo'limida telefon va email bo'yicha qoida yoqing.",
+    "tags": ["dublikat", "lid"]
+  },
+  {
+    "key": "kb05",
+    "lang": "ru",
+    "systemType": "AMOCRM",
+    "problem": "Менеджер не видит сделки",
+    "solution": "Проверьте права пользователя: Настройки → Пользователи → роль → доступ к воронке и сделкам «Все» или «Только свои».",
+    "tags": ["права", "доступ", "сделка"]
+  },
+  {
+    "key": "kb06",
+    "lang": "uz",
+    "systemType": "BITRIX24",
+    "problem": "Qo'ng'iroqlar Bitrix24 kartochkasiga yozilmayapti, telefoniya integratsiyasi ishlamayapti",
+    "solution": "Bitrix24 → Telefoniya → Ulanish bo'limida PBX ilovasi faolligini, foydalanuvchilarga ichki raqam biriktirilganini tekshiring. Ilova tokeni muddati o'tgan bo'lsa qayta ulang.",
+    "tags": ["telefoniya", "qo'ng'iroq", "integratsiya"]
+  },
+  {
+    "key": "kb07",
+    "lang": "ru",
+    "systemType": "BITRIX24",
+    "problem": "Битрикс24 очень медленно работает",
+    "solution": "Очистите кэш браузера (Ctrl+Shift+R), отключите расширения. Если медленно у всех — проверьте статус Bitrix24 и количество активных бизнес-процессов.",
+    "tags": ["медленно", "кэш"]
+  },
+  {
+    "key": "kb08",
+    "lang": "uz",
+    "systemType": "BITRIX24",
+    "problem": "Excel eksport tugmasi ko'rinmayapti",
+    "solution": "Foydalanuvchiga 'Hisobotlar' bo'limida eksport huquqi berilishi kerak.",
+    "tags": ["eksport", "excel", "huquq"]
+  },
+  {
+    "key": "kb09",
+    "lang": "uz",
+    "systemType": "PBX",
+    "problem": "SIP telefon registratsiyadan o'tmayapti",
+    "solution": "Qurilmada server manzili, login va parolni qayta kiriting. Router'da SIP ALG ni o'chiring, 5060 port bloklanmaganini tekshiring.",
+    "tags": ["sip", "registratsiya", "telefon"]
+  },
+  {
+    "key": "kb10",
+    "lang": "ru",
+    "systemType": "PBX",
+    "problem": "Нет записей разговоров",
+    "solution": "В настройках АТС проверьте срок хранения записей: если стоит 0 дней, записи не сохраняются. Установите 30 дней.",
+    "tags": ["запись", "разговор"]
+  },
+  {
+    "key": "kb11",
+    "lang": "uz",
+    "systemType": "PBX",
+    "problem": "Qo'ng'iroq yozuvlari saqlanmayapti",
+    "solution": "PBX sozlamalarida yozuvlarni saqlash muddati 0 kun emasligini tekshiring, 30 kunga o'rnating.",
+    "tags": ["yozuv", "qo'ng'iroq"]
+  },
+  {
+    "key": "kb12",
+    "lang": "ru",
+    "systemType": "PBX",
+    "problem": "Нужно поменять приветствие IVR",
+    "solution": "Пришлите аудиофайл (mp3/wav, до 5 МБ). Мы загрузим его в разделе IVR → Приветствие.",
+    "tags": ["ivr", "приветствие"]
+  },
+  {
+    "key": "kb13",
+    "lang": "uz",
+    "systemType": "OTHER",
+    "problem": "Tizimga kira olmayapman, parol esdan chiqdi",
+    "solution": "Kirish sahifasida 'Parolni tiklash' tugmasini bosing. Xat kelmasa spam papkasini tekshiring. Biz parolni chatda hech qachon so'ramaymiz.",
+    "tags": ["parol", "kirish", "login"]
+  }
+]
