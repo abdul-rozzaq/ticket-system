@@ -17,6 +17,10 @@ import type {
   TgMe,
   TgMessage,
   TgReaction,
+  FolderOp,
+  FolderOpResult,
+  FolderState,
+  TgFolder,
 } from './ports';
 
 export interface GramjsOptions {
@@ -230,7 +234,97 @@ export class GramjsClient implements TelegramUserClient {
     }
   }
 
-  // ------------------------------------------------------------------ the only write: deleting our own messages
+  // ------------------------------------------------------------------ chat folders (dialog filters)
+  //
+  // Limits (10 folders / 100 chats, 20 / 200 with Premium) are Telegram's documented defaults, hard-coded here.
+  // Telegram refuses a folder with an EMPTY include list (FILTER_INCLUDE_EMPTY): the API therefore never asks for one
+  // (empty funnel folders hold a "self" placeholder = Saved Messages, or are removed, depending on a setting).
+
+  private inputPeerKey(p: Api.TypeInputPeer): string | null {
+    if (p instanceof Api.InputPeerChannel) return fromMtproto('channel', p.channelId.toString()).key;
+    if (p instanceof Api.InputPeerChat) return fromMtproto('chat', p.chatId.toString()).key;
+    if (p instanceof Api.InputPeerUser) return fromMtproto('user', p.userId.toString()).key;
+    if (p instanceof Api.InputPeerSelf) return 'self';
+    return null;
+  }
+
+  async listFolders(): Promise<FolderState> {
+    const res = await this.c.invoke(new Api.messages.GetDialogFilters());
+    const folders: TgFolder[] = [];
+    for (const f of res.filters) {
+      // "All chats" (DialogFilterDefault) is not a real folder; shared chat-list folders and normal ones count against the quota.
+      if (f instanceof Api.DialogFilter || f instanceof Api.DialogFilterChatlist) {
+        folders.push({
+          id: f.id,
+          title: f.title.text,
+          chatKeys: f.includePeers.map((p) => this.inputPeerKey(p)).filter((k): k is string => !!k),
+        });
+      }
+    }
+    const dialogs = await this.getDialogs();
+    let premium = false;
+    try {
+      premium = !!(await this.me()).premium;
+    } catch {
+      /* assume the lower limits */
+    }
+    return {
+      folders,
+      dialogKeys: [...dialogs.map((d) => d.chatId), 'self'],
+      limits: premium
+        ? { maxFolders: 20, maxChatsPerFolder: 200 }
+        : { maxFolders: 10, maxChatsPerFolder: 100 },
+      premium,
+    };
+  }
+
+  private async toInputPeer(key: string): Promise<Api.TypeInputPeer | null> {
+    if (key === 'self') return new Api.InputPeerSelf();
+    const peer = parseStoredPeer(key);
+    if (!peer || (peer.kind !== 'channel' && peer.kind !== 'chat')) return null;
+    try {
+      const entity = await this.c.getInputEntity(
+        peer.kind === 'channel'
+          ? new Api.PeerChannel({ channelId: bigInt(peer.id) })
+          : new Api.PeerChat({ chatId: bigInt(peer.id) }),
+      );
+      return entity as Api.TypeInputPeer;
+    } catch {
+      return null; // not in the entity cache / not accessible: skipped, reported back
+    }
+  }
+
+  async applyFolderOp(op: FolderOp): Promise<FolderOpResult> {
+    if (op.op === 'delete') {
+      await this.c.invoke(new Api.messages.UpdateDialogFilter({ id: op.telegramFilterId })); // no filter = delete
+      return { key: op.key, op: 'delete', ok: true, filterId: op.telegramFilterId };
+    }
+    const peers: Api.TypeInputPeer[] = [];
+    const skipped: string[] = [];
+    for (const k of op.chatKeys) {
+      const p = await this.toInputPeer(k);
+      if (p) peers.push(p);
+      else skipped.push(k);
+    }
+    if (!peers.length) throw new Error('FILTER_INCLUDE_EMPTY (no chat could be resolved)');
+    let id: number;
+    if (op.op === 'update') id = op.telegramFilterId;
+    else {
+      const existing = (await this.c.invoke(new Api.messages.GetDialogFilters())).filters;
+      id = Math.max(1, ...existing.map((f) => ('id' in f ? f.id : 1))) + 1; // folder ids start at 2
+    }
+    const filter = new Api.DialogFilter({
+      id,
+      title: new Api.TextWithEntities({ text: op.title, entities: [] }),
+      pinnedPeers: [],
+      includePeers: peers,
+      excludePeers: [],
+    });
+    await this.c.invoke(new Api.messages.UpdateDialogFilter({ id, filter }));
+    return { key: op.key, op: op.op, ok: true, filterId: id, skipped: skipped.length ? skipped : undefined };
+  }
+
+  // ------------------------------------------------------------------ the only other write: deleting our own messages
 
   async deleteOwnMessages(chatId: string, messageIds: string[]): Promise<void> {
     const peer = parseStoredPeer(chatId);

@@ -67,6 +67,16 @@ export const DEFAULT_SETTINGS = {
   'intake.urgentKeywords': '',
   'intake.stopWords': '',
   'assignment.strategy': 'MANUAL',
+  /** Mirror the funnel into Telegram chat folders. */
+  'funnel.foldersEnabled': true,
+  /** One folder per staff member in addition to the system folders. */
+  'funnel.staffFolders': true,
+  'funnel.reconcileDebounceSeconds': 5,
+  /**
+   * Telegram refuses folders with no chats. 'placeholder' keeps empty funnel folders alive by including Saved Messages
+   * (tabs stay put); 'remove' deletes empty folders and re-creates them when the first chat arrives.
+   */
+  'funnel.emptyFolders': 'placeholder',
   'commands.deleteAfterUse': true,
   'reactions.enabled': true,
   'activity.pingEnabled': true,

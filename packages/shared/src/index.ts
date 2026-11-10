@@ -1,5 +1,6 @@
 export * from './bot-callbacks';
 export * from './constants';
+export * from './folder-title';
 export * from './i18n';
 export * from './mask';
 export * from './peer-id';

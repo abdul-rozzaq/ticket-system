@@ -35,6 +35,37 @@ export interface TgMe {
   premium?: boolean;
 }
 
+/** A Telegram chat folder (dialog filter). Chat keys are canonical ("c:123", "g:45", "u:7") or "self" (Saved Messages). */
+export interface TgFolder {
+  id: number;
+  title: string;
+  chatKeys: string[];
+}
+
+export interface FolderState {
+  /** ALL folders on the account (ours and foreign) — foreign ones only matter for the quota. */
+  folders: TgFolder[];
+  /** Every group chat the account can see, plus "self". Chats outside this set cannot be put into a folder. */
+  dialogKeys: string[];
+  limits: { maxFolders: number; maxChatsPerFolder: number };
+  premium: boolean;
+}
+
+export type FolderOp =
+  | { op: 'create'; key: string; title: string; chatKeys: string[] }
+  | { op: 'update'; key: string; telegramFilterId: number; title: string; chatKeys: string[] }
+  | { op: 'delete'; key: string; telegramFilterId: number };
+
+export interface FolderOpResult {
+  key: string;
+  op: 'create' | 'update' | 'delete';
+  ok: boolean;
+  filterId?: number;
+  /** Chats that could not be resolved to a peer and were left out. */
+  skipped?: string[];
+  error?: string;
+}
+
 export type StartResult = 'READY' | 'NEED_LOGIN';
 export type SubmitCodeResult = { needPassword: true } | { session: string; phone?: string };
 
@@ -49,6 +80,10 @@ export interface TelegramUserClient {
   me(): Promise<TgMe>;
   /** Group chats only. */
   getDialogs(): Promise<TgDialog[]>;
+  /** All folders, the chats the account can see, and the account's folder limits. */
+  listFolders(): Promise<FolderState>;
+  /** Applies ONE folder operation. Must never be called for folders the system did not create (the API guarantees it). */
+  applyFolderOp(op: FolderOp): Promise<FolderOpResult>;
   /** Deletes messages sent by the TP account itself; anything not sent by us must be left alone. */
   deleteOwnMessages(chatId: string, messageIds: string[]): Promise<void>;
   onMessage(handler: (m: TgMessage) => void): void;

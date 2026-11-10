@@ -104,3 +104,15 @@ in-memory fake Telegram client for smoke tests. **Use a throwaway account first;
 3. Link each person: admin `POST /api/v1/users/:id/telegram-code`, then the person sends `/start <code>` to the bot in a private chat.
 4. `BOT_MODE=polling` (default) needs no public URL; `webhook` needs `BOT_WEBHOOK_URL` and `BOT_WEBHOOK_SECRET`.
 5. Smoke test of the bot ↔ API contract (fake Telegram, needs a running API on a fresh DB): `pnpm --filter @tp/bot smoke`.
+
+## Funnel, Kanban and Telegram folders
+
+- Board: `GET /api/v1/funnel/board` (filters `assigneeId`, `systemType`, `clientGroupId`); drag & drop: `POST /api/v1/funnel/move`
+  `{ticketId, to: "NEW" | "WAITING" | "CLOSED" | "USER:<uuid>"}`. Stage titles/order: `GET/PUT /api/v1/funnel/stages`.
+- Folders (admin): `GET /telegram/folders` (state + last run), `GET /telegram/folders/preview` (**dry run**), `POST /telegram/folders/sync`
+  (**sync now**), `GET /telegram/folders/log` (per-operation log).
+- Settings (`PUT /api/v1/settings`): `funnel.foldersEnabled`, `funnel.staffFolders`, `funnel.emptyFolders` (`placeholder` | `remove`),
+  `funnel.reconcileDebounceSeconds`. Env: `FOLDERS_POLL_MS` (periodic full sync, default 5 min; `0` disables automatic syncs).
+- The folders are visible to everyone who uses the shared TP account (intended: each person opens their own tab). **Telegram Premium
+  is recommended** (20 folders / 200 chats per folder instead of 10 / 100). We only ever modify folders we created; to recover from a
+  database restore, delete the old funnel folders by hand and sync again.

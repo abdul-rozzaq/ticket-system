@@ -331,7 +331,7 @@ export class TicketsService {
   /** Unassign (used when a staff member is deactivated): back to the "new" stage. */
   async unassign(ticketId: string, actorId: string | null): Promise<Ticket> {
     const before = await this.requireTicket(ticketId);
-    if (before.status === 'CLOSED' || !before.assigneeId) return before;
+    if (before.status === 'CLOSED' || (!before.assigneeId && before.status === 'NEW')) return before;
     const updated = await this.prisma.$transaction(async (tx) => {
       const row = await tx.ticket.update({
         where: { id: ticketId },

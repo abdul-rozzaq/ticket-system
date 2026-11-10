@@ -9,7 +9,9 @@ export type UserbotCommandType =
   | 'LOGIN_SUBMIT_PASSWORD'
   | 'LOGOUT'
   | 'DELETE_MESSAGES'
-  | 'DISCOVER_DIALOGS';
+  | 'DISCOVER_DIALOGS'
+  | 'LIST_FOLDERS'
+  | 'APPLY_FOLDERS';
 
 const SECRET_TYPES = new Set<string>(['LOGIN_SUBMIT_CODE', 'LOGIN_SUBMIT_PASSWORD']);
 
@@ -28,6 +30,33 @@ export class OutboxService {
 
   enqueue(type: UserbotCommandType, payload: Record<string, unknown> = {}) {
     return this.prisma.userbotCommand.create({ data: { type, payload: payload as Prisma.InputJsonValue } });
+  }
+
+  /**
+   * Enqueues a command and waits for the userbot's answer (request/response over the outbox).
+   * On timeout a command that was never picked up is cancelled so it cannot run later with stale data.
+   */
+  async request(
+    type: UserbotCommandType,
+    payload: Record<string, unknown>,
+    timeoutMs = 30_000,
+  ): Promise<Record<string, unknown>> {
+    const cmd = await this.enqueue(type, payload);
+    const end = Date.now() + timeoutMs;
+    for (;;) {
+      const row = await this.prisma.userbotCommand.findUniqueOrThrow({ where: { id: cmd.id } });
+      if (row.status === 'DONE') return (row.result ?? {}) as Record<string, unknown>;
+      if (row.status === 'FAILED')
+        throw new Error(String((row.result as { error?: string } | null)?.error ?? 'userbot command failed'));
+      if (Date.now() >= end) {
+        await this.prisma.userbotCommand.updateMany({
+          where: { id: cmd.id, status: 'PENDING' },
+          data: { status: 'FAILED', result: { error: 'timeout' }, doneAt: new Date() },
+        });
+        throw new Error(`userbot did not answer ${type} within ${Math.round(timeoutMs / 1000)}s`);
+      }
+      await new Promise((r) => setTimeout(r, 200));
+    }
   }
 
   /** Atomically hands out pending commands (SKIP LOCKED: two pollers never get the same command). */
@@ -107,6 +136,7 @@ export class OutboxService {
     data: { status: string; sessionEnc?: string | null; info?: Record<string, unknown> },
   ) {
     const { info, ...rest } = data;
+
     return this.prisma.userbotSession.update({
       where: { id },
       data: { ...rest, ...(info ? { info: info as Prisma.InputJsonValue } : {}) },

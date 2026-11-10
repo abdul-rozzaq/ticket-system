@@ -21,6 +21,7 @@ export interface DomainEventMap {
     handoverNote?: string;
   };
   'ticket.closed': TicketSnapshot & { solutionNote: string | null; actorId: string | null };
+  'user.deactivated': { userId: string };
   'ai.requested': { ticketId: string; chatId: string; actorId: string | null; messageId: string | null };
   'ticket.message': { ticketId: string; direction: 'IN' | 'OUT'; isFirstResponse: boolean };
 }

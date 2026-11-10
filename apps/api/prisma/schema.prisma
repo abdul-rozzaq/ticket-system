@@ -422,6 +422,23 @@ model TelegramFolderState {
   updatedAt        DateTime @updatedAt
 }
 
+/// Per-operation log of Telegram folder syncs (create / update / delete / skipped chat), shown in the admin panel.
+model FolderOperation {
+  id        String   @id @default(uuid()) @db.Uuid
+  /// Groups the operations of one reconcile run.
+  runId     String   @db.Uuid
+  trigger   String
+  op        String
+  key       String
+  ok        Boolean
+  detail    Json     @default("{}")
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([runId])
+}
+
 model UserbotSession {
   id             String    @id @default(uuid()) @db.Uuid
   phone          String?

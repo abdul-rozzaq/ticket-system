@@ -26,6 +26,8 @@ export const envSchema = z.object({
   /** How often the intake debounce buffers are checked (ms). 0 disables the timer (tests call processDue directly). */
   /** How often reminders/digests are evaluated (ms). 0 disables the timer (tests call tick() directly). */
   BOT_POLL_MS: z.coerce.number().int().min(0).default(30000),
+  /** Folder reconcile: periodic full sync interval AND switch for event-triggered syncs (ms). 0 disables both (tests call sync() directly). */
+  FOLDERS_POLL_MS: z.coerce.number().int().min(0).default(300000),
   INTAKE_POLL_MS: z.coerce.number().int().min(0).default(5000),
 });
 

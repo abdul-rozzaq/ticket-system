@@ -1,4 +1,13 @@
-import type { ApiCommand, ApiPort, Logger, TelegramUserClient, TgMessage, TgReaction } from './ports';
+import type {
+  ApiCommand,
+  ApiPort,
+  FolderOp,
+  FolderOpResult,
+  Logger,
+  TelegramUserClient,
+  TgMessage,
+  TgReaction,
+} from './ports';
 import { backoffMs, RateLimiter, realSleep, withFloodWait, type Sleep } from './rate-limit';
 
 export interface WorkerOptions {
@@ -14,6 +23,9 @@ export interface WorkerOptions {
   /** Max events kept in memory while the API is unreachable. Oldest are dropped first. */
   maxPending?: number;
 }
+
+const FOLDER_KEY = /^(NEW|WAITING|OVERDUE|USER:[0-9a-f-]{36})$/;
+const MAX_FOLDER_OPS = 40;
 
 type Pending = { kind: 'message'; m: TgMessage } | { kind: 'reaction'; r: TgReaction };
 
@@ -266,6 +278,12 @@ export class UserbotWorker {
         await this.tg(() => client.deleteOwnMessages(String(p.chatId), ids));
         return { deleted: ids.length };
       }
+      case 'LIST_FOLDERS': {
+        return { state: await this.tg(() => client.listFolders()) };
+      }
+      case 'APPLY_FOLDERS': {
+        return { results: await this.applyFolders(p.ops) };
+      }
       case 'DISCOVER_DIALOGS': {
         const n = await this.discover();
         return { groups: n };
@@ -274,6 +292,43 @@ export class UserbotWorker {
         void api;
         throw new Error(`unknown command type ${cmd.type}`);
     }
+  }
+
+  /**
+   * Applies folder operations one by one. Each goes through the rate limiter / FLOOD_WAIT handling, and a failure of one
+   * operation never stops the others. Only funnel folders may be touched: anything else is refused here as a second line
+   * of defence (the API only ever sends keys it owns).
+   */
+  private async applyFolders(raw: unknown): Promise<FolderOpResult[]> {
+    const ops = Array.isArray(raw) ? (raw as FolderOp[]) : [];
+    if (ops.length > MAX_FOLDER_OPS) throw new Error(`too many folder operations (${ops.length})`);
+    const results: FolderOpResult[] = [];
+    for (const op of ops) {
+      const base = { key: String(op?.key), op: op?.op };
+      if (!op || !FOLDER_KEY.test(op.key) || !['create', 'update', 'delete'].includes(op.op)) {
+        results.push({
+          ...base,
+          ok: false,
+          error: 'refused: not a funnel folder operation',
+        } as FolderOpResult);
+        continue;
+      }
+      if (op.op !== 'create' && !(Number.isInteger(op.telegramFilterId) && op.telegramFilterId >= 2)) {
+        results.push({ ...base, ok: false, error: 'refused: bad folder id' } as FolderOpResult);
+        continue;
+      }
+      try {
+        results.push(await this.tg(() => this.o.client.applyFolderOp(op)));
+      } catch (e) {
+        this.o.logger.warn('folder operation failed', { op: op.op, key: op.key, err: (e as Error).name });
+        results.push({
+          ...base,
+          ok: false,
+          error: String((e as Error).message).slice(0, 200),
+        } as FolderOpResult);
+      }
+    }
+    return results;
   }
 
   private async afterLogin(session: string, phone?: string): Promise<Record<string, unknown>> {

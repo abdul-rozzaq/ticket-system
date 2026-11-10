@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuthService, publicUser } from '../auth/auth.service';
 import { CryptoService } from '../common/crypto.service';
 import { AuditService } from '../audit/audit.service';
+import { DomainEvents } from '../events/domain-events';
 import { AppError } from '../common/http';
 
 const LINK_CODE_TTL_MS = 24 * 3600_000;
@@ -20,6 +21,7 @@ export class UsersService implements OnApplicationBootstrap {
     private readonly auth: AuthService,
     private readonly crypto: CryptoService,
     private readonly audit: AuditService,
+    private readonly events: DomainEvents,
     @Inject(APP_ENV) private readonly env: Env,
   ) {}
 
@@ -96,6 +98,7 @@ export class UsersService implements OnApplicationBootstrap {
     });
     if (input.isActive === false || (input.role && input.role !== existing.role))
       await this.auth.revokeAllForUser(id);
+    if (input.isActive === false && existing.isActive) this.events.emit('user.deactivated', { userId: id });
     await this.audit.log({
       actorId,
       action: 'user.update',
