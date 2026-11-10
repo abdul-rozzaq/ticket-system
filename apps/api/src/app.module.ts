@@ -6,6 +6,11 @@ import { PrismaModule } from './prisma/prisma.service';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { EventsModule } from './events/domain-events';
+import { SettingsModule } from './settings/settings.service';
+import { TicketsModule } from './tickets/tickets.module';
+import { TemplatesModule } from './templates/templates.module';
+import { RealtimeModule } from './realtime/realtime.gateway';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -13,10 +18,15 @@ import { HealthController } from './health/health.controller';
     ConfigModule,
     PrismaModule,
     CommonModule,
+    EventsModule,
+    SettingsModule,
     // Coarse global limiter; login/refresh have tighter per-route limits plus DB-backed lockout.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 600 }]),
     AuthModule,
     UsersModule,
+    TicketsModule,
+    TemplatesModule,
+    RealtimeModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
