@@ -76,7 +76,8 @@ export function renderCard(c: CardInput): RenderedCard {
   lines.push(
     `${BADGE[tk.urgency]} <b>#${tk.number}</b> · ${escapeHtml(c.company)} · ${SYSTEM_LABEL[tk.systemType] ?? tk.systemType}`,
   );
-  if (tk.summary) lines.push(`<i>${escapeHtml(trim(tk.summary, 200))}</i>`);
+  // The summary may be a copy of the customer's text (manual tickets, AI off): mask it like the body.
+  if (tk.summary) lines.push(`<i>${escapeHtml(trim(maskSensitive(tk.summary).text, 200))}</i>`);
   // Secrets must not be copied into a Telegram group: mask, then trim.
   const body = trim(maskSensitive(c.firstText).text.replace(/\s+/g, ' ').trim(), 300);
   if (body) lines.push(`«${escapeHtml(body)}»`);

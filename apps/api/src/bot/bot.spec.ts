@@ -118,6 +118,11 @@ describe('renderCard', () => {
     expect(escapeHtml('a<b>&')).toBe('a&lt;b&gt;&amp;');
   });
 
+  it('masks secrets that were copied into the summary too', () => {
+    const c = renderCard(base({ summary: 'login admin parol: Hunter22secret' }));
+    expect(c.text).not.toContain('Hunter22secret');
+  });
+
   it('trims long texts and flags low-confidence AI', () => {
     const c = renderCard(base({ needsReview: true }, { firstText: 'x'.repeat(2000) }));
     expect(c.text.length).toBeLessThan(900);

@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { Prisma, type Ticket, type TicketStatus, type Urgency, type SystemType } from '@prisma/client';
-import { t, ticketFilterSchema } from '@tp/shared';
+import { maskSensitive, t, ticketFilterSchema } from '@tp/shared';
 import type { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service';
 import { DomainEvents, TicketSnapshot } from '../events/domain-events';
@@ -102,7 +102,8 @@ export class TicketsService {
             urgency: input.urgency ?? 'NORMAL',
             category: input.category ?? 'other',
             systemType: input.systemType ?? group.systemType,
-            summary: input.summary ?? input.text.slice(0, 120),
+            // default summary is a copy of the first message: never store a raw secret in it
+            summary: input.summary ?? maskSensitive(input.text).text.slice(0, 120),
             aiConfidence: input.aiConfidence ?? null,
             needsReview: input.needsReview ?? false,
             openedAt: now,

@@ -7,7 +7,7 @@ what has been verified. Design decisions are in [PLAN.md](PLAN.md); features in 
 ```
 apps/api          NestJS + Prisma + PostgreSQL(pgvector)   <- implemented (auth, users, groups, tickets, intake, AI service, userbot outbox)
 apps/userbot      GramJS worker                            <- worker/tests done; real MTProto adapter UNVERIFIED
-apps/bot          grammY internal bot                      <- not started
+apps/bot          grammY internal bot                      <- worker/tests done; Telegram gateway UNVERIFIED
 apps/admin        Next.js admin panel                      <- not started
 apps/extension    Chrome MV3 extension                     <- prototype still in ../extension, not yet moved
 packages/shared   zod schemas, masking, peer ids, i18n, SLA
@@ -95,3 +95,12 @@ API_URL=http://localhost:3000 SERVICE_TOKEN=... TG_API_ID=... TG_API_HASH=... pn
 
 Run it with `pnpm --filter @tp/userbot dev` (or the `userbot` compose service). `USERBOT_FAKE=true` starts it with an
 in-memory fake Telegram client for smoke tests. **Use a throwaway account first; read the ban-risk note in STATUS.md.**
+
+## Internal bot
+
+1. Create a bot with @BotFather and an internal group (bot + staff). Find the group's chat id (`-100…`).
+2. As admin: `PUT /api/v1/telegram/bot` with `{"token":"…","internalChatId":"-100…","escalationUserId":"<uuid>"}`
+   (the token is stored encrypted and never returned). Start the `bot` service; it fetches the token from the API.
+3. Link each person: admin `POST /api/v1/users/:id/telegram-code`, then the person sends `/start <code>` to the bot in a private chat.
+4. `BOT_MODE=polling` (default) needs no public URL; `webhook` needs `BOT_WEBHOOK_URL` and `BOT_WEBHOOK_SECRET`.
+5. Smoke test of the bot ↔ API contract (fake Telegram, needs a running API on a fresh DB): `pnpm --filter @tp/bot smoke`.

@@ -285,6 +285,16 @@ describe('tickets (e2e)', () => {
     expect(byChat.body.lastClosed).toBeNull();
   });
 
+  it('the default summary never stores a raw secret', async () => {
+    const { ticket } = await svc().createTicket({
+      clientGroupId: groupId,
+      text: 'parol: Hunter22secret, token sk-ant-api03-abcdefghijklmnopqrstuv',
+    });
+    expect(ticket.summary).not.toContain('Hunter22secret');
+    expect(ticket.summary).not.toContain('abcdefghijklmnopqrstuv');
+    expect(ticket.summary).toContain('[PAROL]');
+  });
+
   it('templates: admin CRUD, staff read + usage counter', async () => {
     const t = await ctx
       .http()

@@ -1,5 +1,5 @@
 # TP Ticket System. `docker compose -f infra/docker-compose.yml --env-file infra/.env up -d --build`
-# Services bot / admin are added as their apps are implemented (see STATUS.md).
+# The admin panel is added when it is implemented (see STATUS.md).
 services:
   postgres:
     image: pgvector/pgvector:pg17
@@ -77,6 +77,23 @@ services:
       TG_API_ID: ${TG_API_ID:-}
       TG_API_HASH: ${TG_API_HASH:-}
       USERBOT_FAKE: ${USERBOT_FAKE:-false}
+
+  bot:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.bot
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      API_URL: http://api:3000
+      SERVICE_TOKEN: ${SERVICE_TOKEN:?set SERVICE_TOKEN (16+ chars)}
+      # The bot token itself is set by an admin (PUT /api/v1/telegram/bot) and stored encrypted by the API.
+      BOT_MODE: ${BOT_MODE:-polling}
+      BOT_WEBHOOK_URL: ${BOT_WEBHOOK_URL:-}
+      BOT_WEBHOOK_SECRET: ${BOT_WEBHOOK_SECRET:-}
+      BOT_FAKE: ${BOT_FAKE:-false}
 
 volumes:
   pgdata:
