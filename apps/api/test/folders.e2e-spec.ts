@@ -2,8 +2,8 @@
 // What it proves: the API <-> userbot contract (LIST_FOLDERS / APPLY_FOLDERS), the reconcile logic, idempotence,
 // quota handling and "never touch foreign folders". What it cannot prove: how real Telegram behaves.
 import { adminToken, bearer, createTestApp, SERVICE_TOKEN, TestCtx } from './helpers';
-import { FoldersService } from '../src/funnel/folders.service';
-import { TicketsService } from '../src/tickets/tickets.service';
+import { FoldersService } from '../src/apps/funnel/folders.service';
+import { TicketsService } from '../src/apps/tickets/tickets.service';
 import { ApiClient } from '../../userbot/src/api-client';
 import { FakeTelegramClient } from '../../userbot/src/fake-client';
 import { UserbotWorker } from '../../userbot/src/worker';

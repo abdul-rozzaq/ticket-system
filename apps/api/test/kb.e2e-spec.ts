@@ -1,10 +1,10 @@
 import { queryStems } from '@tp/shared';
 import { adminToken, bearer, createTestApp, TestCtx } from './helpers';
-import { AiService } from '../src/ai/ai.service';
-import { CircuitBreaker, LlmError, type LlmAdapter } from '../src/ai/adapters';
-import { KbService } from '../src/kb/kb.service';
-import { KbGrowthService } from '../src/kb/kb-growth.service';
-import { TicketsService } from '../src/tickets/tickets.service';
+import { AiService } from '../src/apps/ai/ai.service';
+import { CircuitBreaker, LlmError, type LlmAdapter } from '../src/apps/ai/adapters';
+import { KbService } from '../src/apps/kb/kb.service';
+import { KbGrowthService } from '../src/apps/kb/kb-growth.service';
+import { TicketsService } from '../src/apps/tickets/tickets.service';
 import fixture from './fixtures/kb.json';
 
 const DIM = 1536;

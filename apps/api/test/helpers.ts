@@ -2,8 +2,8 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { randomBytes } from 'node:crypto';
 import request from 'supertest';
-import { PrismaService } from '../src/prisma/prisma.service';
-import { UsersService } from '../src/users/users.service';
+import { PrismaService } from '../src/common/prisma.service';
+import { UsersService } from '../src/apps/users/users.service';
 import { setupApp } from '../src/setup';
 
 export const ADMIN = { username: 'admin', password: 'Admin-pass-12345' };
@@ -42,7 +42,7 @@ export interface TestCtx {
 export async function createTestApp(opts: { classifier?: unknown } = {}): Promise<TestCtx> {
   setTestEnv();
   const { AppModule } = await import('../src/app.module');
-  const { IntakeClassifier } = await import('../src/ai/ai.service');
+  const { IntakeClassifier } = await import('../src/apps/ai/ai.service');
   let builder = Test.createTestingModule({ imports: [AppModule] });
   if (opts.classifier) builder = builder.overrideProvider(IntakeClassifier).useValue(opts.classifier);
   const moduleRef = await builder.compile();

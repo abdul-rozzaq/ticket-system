@@ -1,5 +1,5 @@
 import { adminToken, bearer, createTestApp, TestCtx } from './helpers';
-import { TicketsService } from '../src/tickets/tickets.service';
+import { TicketsService } from '../src/apps/tickets/tickets.service';
 
 type Col = {
   key: string;

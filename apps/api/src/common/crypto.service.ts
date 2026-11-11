@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { APP_ENV, Env } from '../config/env';
+import { APP_ENV, Env } from './env';
 
 /**
  * AES-256-GCM envelope for secrets at rest (userbot session, AI keys, bot token).

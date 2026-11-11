@@ -1,8 +1,8 @@
 import type { AiClassification } from '@tp/shared';
 import { adminToken, bearer, createTestApp, TestCtx } from './helpers';
-import { IntakeService } from '../src/intake/intake.service';
-import { OutboxService } from '../src/intake/outbox.service';
-import { DomainEvents } from '../src/events/domain-events';
+import { IntakeService } from '../src/apps/intake/intake.service';
+import { OutboxService } from '../src/apps/intake/outbox.service';
+import { DomainEvents } from '../src/common/domain-events';
 
 /** Scriptable stand-in for the AI classifier (the real AiService is covered in ai.e2e-spec.ts). */
 const fake = {

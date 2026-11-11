@@ -107,3 +107,31 @@ forwards events to the panels.
 - Nothing has run against a real Telegram account, a real AI provider, or in a real Chrome with Telegram Web.
 - GramJS and grammY adapters are written from documentation and unverified; everything above them is tested with fakes.
 - The API image is large (the whole workspace); slimming it is tracked in docs/PROGRESS.md.
+
+## 8. Code layout of `apps/api/src`
+
+```text
+main.ts, setup.ts, app.module.ts     bootstrap and module wiring
+apps/                                feature modules (business logic)
+  auth/      login, refresh, guards and the Public/Roles/CurrentUser decorators
+  users/     staff accounts, Telegram link codes, first-admin seed
+  tickets/   tickets, client groups, templates (the support-desk core)
+  intake/    userbot messages -> tickets, debounce, outbox, attribution, auto-assign
+  bot/       internal bot: cards, callbacks, commands, reminders, digest
+  funnel/    Kanban stages and board, Telegram folder reconcile
+  kb/        knowledge base, search, AI drafts, KB growth
+  ai/        provider adapters, usage and budget, AI settings endpoints
+  admin/     audit log API, SLA policies, statistics + CSV
+  demo/      DEMO_MODE seed
+common/                              cross-cutting code
+  env.ts, config.module.ts           validated environment
+  prisma.service.ts, crypto.service.ts (AES-256-GCM), http.ts (AppError, ZodPipe)
+  audit.service.ts, domain-events.ts (in-process event bus), settings.service.ts
+  realtime.gateway.ts (Socket.IO), health.controller.ts
+  domain/                            pure, framework-free rules (assignment, intake rules, folder planner) + their tests
+```
+
+Rules: features import `common`, never the other way round, with one deliberate exception: three `common` files
+(`health.controller`, `settings.service`, `realtime.gateway`) use `apps/auth` (guards/decorators, token verification).
+Features talk to each other through their Nest modules, not by reaching into another feature's internals. Unit tests sit next
+to the code (`*.spec.ts`); e2e tests are in `test/`.

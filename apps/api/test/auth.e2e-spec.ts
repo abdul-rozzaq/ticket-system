@@ -192,7 +192,7 @@ describe('auth + users (e2e)', () => {
     expect(row.telegramLinkHash).toBeTruthy();
     expect(row.telegramLinkHash).not.toContain(code.body.code);
 
-    const { UsersService } = await import('../src/users/users.service');
+    const { UsersService } = await import('../src/apps/users/users.service');
     const users = ctx.app.get(UsersService);
     expect(await users.linkTelegram('WRONGCODE', 111n)).toBeNull();
     expect((await users.linkTelegram(code.body.code, 111n))?.telegramLinked).toBe(true);

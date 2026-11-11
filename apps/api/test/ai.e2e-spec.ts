@@ -1,7 +1,7 @@
 import { adminToken, bearer, createTestApp, TestCtx } from './helpers';
-import { AiService } from '../src/ai/ai.service';
-import { IntakeService } from '../src/intake/intake.service';
-import { CircuitBreaker, LlmError, type LlmAdapter, type LlmRequest } from '../src/ai/adapters';
+import { AiService } from '../src/apps/ai/ai.service';
+import { IntakeService } from '../src/apps/intake/intake.service';
+import { CircuitBreaker, LlmError, type LlmAdapter, type LlmRequest } from '../src/apps/ai/adapters';
 
 const VERDICT = {
   isRequest: true,

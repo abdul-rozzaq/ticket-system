@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { CryptoService } from './crypto.service';
-import type { Env } from '../config/env';
+import type { Env } from './env';
 
 const make = () => new CryptoService({ ENCRYPTION_KEY: randomBytes(32).toString('base64') } as Env);
 

@@ -1,8 +1,8 @@
 import { io, type Socket } from 'socket.io-client';
 import { adminToken, bearer, createTestApp, TestCtx } from './helpers';
-import { AiService } from '../src/ai/ai.service';
-import { CircuitBreaker, LlmError, type LlmAdapter } from '../src/ai/adapters';
-import { TicketsService } from '../src/tickets/tickets.service';
+import { AiService } from '../src/apps/ai/ai.service';
+import { CircuitBreaker, LlmError, type LlmAdapter } from '../src/apps/ai/adapters';
+import { TicketsService } from '../src/apps/tickets/tickets.service';
 import fixture from './fixtures/kb.json';
 
 const CHAT_KEY = 'c:1234567890'; // stored key of "-1001234567890"

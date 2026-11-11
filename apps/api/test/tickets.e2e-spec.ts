@@ -1,5 +1,5 @@
 import { adminToken, bearer, createTestApp, TestCtx } from './helpers';
-import { TicketsService } from '../src/tickets/tickets.service';
+import { TicketsService } from '../src/apps/tickets/tickets.service';
 
 describe('tickets (e2e)', () => {
   let ctx: TestCtx;
@@ -194,7 +194,7 @@ describe('tickets (e2e)', () => {
     const { ticket } = await open();
     await ctx.http().post(`/api/v1/tickets/${ticket.id}/take`).set(bearer(staff[0].token));
     const seen: unknown[] = [];
-    const { DomainEvents } = await import('../src/events/domain-events');
+    const { DomainEvents } = await import('../src/common/domain-events');
     ctx.app.get(DomainEvents).on('ticket.assigned', (p) => seen.push(p));
     const r = await ctx
       .http()

@@ -1,8 +1,8 @@
 import { userShortId } from '@tp/shared';
 import { adminToken, bearer, createTestApp, TestCtx } from './helpers';
-import { TicketsService } from '../src/tickets/tickets.service';
-import { RemindersService } from '../src/bot/reminders.service';
-import { BotNotifier } from '../src/bot/bot-notifier.service';
+import { TicketsService } from '../src/apps/tickets/tickets.service';
+import { RemindersService } from '../src/apps/bot/reminders.service';
+import { BotNotifier } from '../src/apps/bot/bot-notifier.service';
 
 const GROUP_CHAT = '-1009990001'; // the internal Telegram group
 type Staff = { id: string; token: string; tg: string; name: string };

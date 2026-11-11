@@ -1,5 +1,5 @@
 import { adminToken, bearer, createTestApp, TestCtx } from './helpers';
-import { DemoSeedService } from '../src/demo/demo-seed.service';
+import { DemoSeedService } from '../src/apps/demo/demo-seed.service';
 
 describe('DEMO_MODE seed (e2e)', () => {
   let ctx: TestCtx;

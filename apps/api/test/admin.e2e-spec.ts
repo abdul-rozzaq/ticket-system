@@ -1,6 +1,6 @@
 import { adminToken, bearer, createTestApp, TestCtx } from './helpers';
-import { TicketsService } from '../src/tickets/tickets.service';
-import { csvCell } from '../src/admin/stats.service';
+import { TicketsService } from '../src/apps/tickets/tickets.service';
+import { csvCell } from '../src/apps/admin/stats.service';
 
 describe('admin API: audit, SLA policies, statistics (e2e)', () => {
   let ctx: TestCtx;
