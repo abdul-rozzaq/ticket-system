@@ -4,6 +4,9 @@ export type Lang = 'uz' | 'ru';
 export const uz = {
   // app / nav
   'app.name': 'TP Yordam paneli',
+  'nav.group.work': 'Ish jarayoni',
+  'nav.group.knowledge': 'Bilimlar',
+  'nav.group.admin': 'Boshqaruv',
   'nav.dashboard': 'Bosh sahifa',
   'nav.myTickets': 'Mening tiketlarim',
   'nav.board': 'Kanban',
@@ -59,6 +62,9 @@ export const uz = {
   'common.min': 'daq',
   // login
   'login.title': 'Tizimga kirish',
+  'login.subtitle': "Hisobingiz ma'lumotlarini kiriting",
+  'login.tagline': "Texnik yordam so'rovlari bitta joyda",
+  'login.taglineSub': 'Mijozlar murojaatlari, jamoa ishi va bilim bazasi yagona tizimda.',
   'login.username': 'Login',
   'login.password': 'Parol',
   'login.submit': 'Kirish',

@@ -139,7 +139,7 @@ export default function BoardPage() {
                 drop(col, e.dataTransfer.getData('text/plain'));
               }}
               className={cn(
-                'w-72 shrink-0 rounded-lg border bg-muted/40 p-2',
+                'w-72 shrink-0 rounded-md border bg-muted/40 p-2',
                 over === col.key && 'ring-2 ring-primary',
                 col.key === 'OVERDUE' && 'border-destructive/40',
               )}

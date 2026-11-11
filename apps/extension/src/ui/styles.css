@@ -1,30 +1,31 @@
 /* Shared styles for the dock (inside Shadow DOM) and the side panel page. */
 :host, .tp-root {
   --tp-bg: #ffffff;
-  --tp-bg2: #f4f5f7;
-  --tp-fg: #1f2328;
-  --tp-muted: #6b7280;
-  --tp-border: #e3e5e8;
-  --tp-accent: #3390ec;
+  --tp-bg2: #f4f6f9;
+  --tp-fg: #172033;
+  --tp-muted: #5a667a;
+  --tp-border: #dde2ea;
+  --tp-accent: #1d4ed8;
   --tp-accent-fg: #ffffff;
-  --tp-ok: #2e7d32;
-  --tp-warn: #e08600;
-  --tp-err: #d32f2f;
-  --tp-chip: #e8f1fd;
-  --tp-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
-  --tp-radius: 10px;
+  --tp-ok: #1b7f4a;
+  --tp-warn: #a96a0b;
+  --tp-err: #c8372d;
+  --tp-chip: #e6edfc;
+  --tp-shadow: 0 6px 24px rgba(15, 26, 48, 0.16), 0 0 0 1px rgba(15, 26, 48, 0.04);
+  --tp-radius: 6px;
   font: 13px/1.4 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   color: var(--tp-fg);
 }
 .tp-root[data-theme='dark'] {
-  --tp-bg: #212121;
-  --tp-bg2: #2c2c2c;
-  --tp-fg: #f1f1f1;
-  --tp-muted: #a0a0a0;
-  --tp-border: #3a3a3a;
-  --tp-accent: #8774e1;
-  --tp-chip: #33304a;
-  --tp-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  --tp-bg: #131c30;
+  --tp-bg2: #1a2438;
+  --tp-fg: #e6ebf5;
+  --tp-muted: #92a0b8;
+  --tp-border: #243049;
+  --tp-accent: #6b96ff;
+  --tp-accent-fg: #0b1222;
+  --tp-chip: #1d2b4d;
+  --tp-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
 }
 .tp-root * { box-sizing: border-box; }
 .tp-root button { font: inherit; cursor: pointer; }

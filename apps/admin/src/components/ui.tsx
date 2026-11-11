@@ -11,13 +11,13 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:opacity-90',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-muted border',
+        default: 'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90',
+        secondary: 'border border-input bg-card text-foreground shadow-xs hover:bg-muted',
         ghost: 'hover:bg-muted',
-        destructive: 'bg-destructive text-white hover:opacity-90',
-        outline: 'border bg-card hover:bg-muted',
+        destructive: 'bg-destructive text-white shadow-xs hover:bg-destructive/90',
+        outline: 'border border-input bg-card text-foreground hover:bg-muted',
       },
-      size: { default: 'h-9 px-3.5', sm: 'h-8 px-2.5 text-xs', icon: 'h-8 w-8' },
+      size: { default: 'h-9 px-4', sm: 'h-8 px-3 text-xs', icon: 'h-8 w-8' },
     },
     defaultVariants: { variant: 'default', size: 'default' },
   },
@@ -33,7 +33,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = 'Button';
 
 const fieldCls =
-  'w-full rounded-md border bg-card px-3 py-1.5 text-sm placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-60';
+  'w-full rounded-md border border-input bg-card px-3 py-1.5 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-ring/25 disabled:bg-muted disabled:opacity-70';
 export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   ({ className, ...p }, ref) => <input ref={ref} className={cn(fieldCls, 'h-9', className)} {...p} />,
 );
@@ -63,7 +63,7 @@ export function Field({
 }) {
   return (
     <label className={cn('block space-y-1', className)}>
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <span className="text-xs font-medium text-foreground/80">{label}</span>
       {children}
       {hint && <span className="block text-xs text-muted-foreground">{hint}</span>}
     </label>
@@ -71,12 +71,12 @@ export function Field({
 }
 
 export function Card({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('rounded-lg border bg-card text-card-foreground shadow-sm', className)} {...p} />;
+  return <div className={cn('rounded-md border bg-card text-card-foreground shadow-xs', className)} {...p} />;
 }
 export function CardHeader({ title, actions }: { title: React.ReactNode; actions?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
-      <h3 className="text-sm font-semibold">{title}</h3>
+    <div className="flex items-center justify-between gap-2 border-b bg-muted/50 px-4 py-2.5">
+      <h3 className="text-[13px] font-semibold text-foreground">{title}</h3>
       {actions}
     </div>
   );
@@ -101,7 +101,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+        'inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-current/15',
         badgeTone[tone],
         className,
       )}
@@ -139,9 +139,9 @@ export function PageHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+    <div className="mb-6 flex flex-wrap items-start justify-between gap-3 border-b pb-4">
       <div>
-        <h1 className="text-xl font-semibold">{title}</h1>
+        <h1 className="text-[22px] font-semibold leading-tight">{title}</h1>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -158,12 +158,15 @@ export function Table({ className, ...p }: React.TableHTMLAttributes<HTMLTableEl
 }
 export const Th = ({ className, ...p }: React.ThHTMLAttributes<HTMLTableCellElement>) => (
   <th
-    className={cn('border-b px-3 py-2 text-left text-xs font-medium text-muted-foreground', className)}
+    className={cn(
+      'border-b bg-muted/50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground',
+      className,
+    )}
     {...p}
   />
 );
 export const Td = ({ className, ...p }: React.TdHTMLAttributes<HTMLTableCellElement>) => (
-  <td className={cn('border-b px-3 py-2 align-top', className)} {...p} />
+  <td className={cn('border-b px-3 py-2.5 align-top', className)} {...p} />
 );
 
 /** Modal built on the native <dialog> element (focus trap + Esc come for free). */
@@ -193,7 +196,7 @@ export function Modal({
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
       className={cn(
-        'm-auto w-[calc(100%-2rem)] rounded-lg border bg-card p-0 text-card-foreground shadow-xl',
+        'm-auto w-[calc(100%-2rem)] rounded-md border bg-card p-0 text-card-foreground shadow-2xl',
         wide ? 'max-w-3xl' : 'max-w-lg',
       )}
     >
@@ -308,12 +311,23 @@ export function Stat({
   sub?: string;
 }) {
   return (
-    <Card>
-      <CardBody>
-        <div className="text-xs text-muted-foreground">{label}</div>
+    <Card
+      className={cn(
+        'border-l-[3px]',
+        tone === 'danger'
+          ? 'border-l-destructive'
+          : tone === 'warning'
+            ? 'border-l-warning'
+            : tone === 'success'
+              ? 'border-l-success'
+              : 'border-l-primary/40',
+      )}
+    >
+      <CardBody className="px-4 py-3">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
         <div
           className={cn(
-            'mt-1 text-2xl font-semibold tabular-nums',
+            'mt-1 text-[26px] font-semibold leading-none tabular-nums',
             tone === 'danger' && 'text-destructive',
             tone === 'warning' && 'text-warning',
             tone === 'success' && 'text-success',
@@ -321,7 +335,7 @@ export function Stat({
         >
           {value}
         </div>
-        {sub && <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>}
+        {sub && <div className="mt-1.5 text-xs text-muted-foreground">{sub}</div>}
       </CardBody>
     </Card>
   );

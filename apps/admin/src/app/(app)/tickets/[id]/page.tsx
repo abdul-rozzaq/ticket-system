@@ -146,7 +146,7 @@ export default function TicketDetailPage() {
               {tk.messages.map((m) => (
                 <div
                   key={m.id}
-                  className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+                  className={`max-w-[85%] rounded-md px-3 py-2 text-sm ${
                     m.isInternalNote
                       ? 'border border-warning/50 bg-warning/10'
                       : m.direction === 'OUT'
