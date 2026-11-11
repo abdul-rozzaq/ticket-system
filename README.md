@@ -9,7 +9,7 @@ apps/api          NestJS + Prisma + PostgreSQL(pgvector)   <- implemented (auth,
 apps/userbot      GramJS worker                            <- worker/tests done; real MTProto adapter UNVERIFIED
 apps/bot          grammY internal bot                      <- worker/tests done; Telegram gateway UNVERIFIED
 apps/admin        Next.js admin panel (BFF, uz UI)         <- done (see STATUS.md)
-apps/extension    Chrome MV3 extension                     <- prototype still in ../extension, not yet moved
+apps/extension    Chrome extension (Telegram Web side panel)  <- server mode done, untested in a real browser
 packages/shared   zod schemas, masking, peer ids, i18n, SLA
 infra/            docker-compose, Dockerfile.api, .env.example
 ```
@@ -53,6 +53,15 @@ pnpm --filter @tp/api dev
 ```
 
 Swagger: `http://localhost:3000/docs`. The seeded admin must change its password at first login.
+
+### Extension
+
+```bash
+pnpm --filter @tp/shared build
+pnpm --filter @tp/extension build   # load apps/extension/dist as an unpacked extension
+```
+
+Options -> "Tiket serveri": API URL + login. Without a login the extension runs in the old mock mode. See MANUAL_TESTS.md §11.
 
 ### Admin panel
 

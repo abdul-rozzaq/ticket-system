@@ -1,0 +1,8 @@
+[
+  { "id": "c1", "companyName": "Orient Motors", "contactName": "Jasur aka", "system": "AmoCRM", "telegramChatId": "", "titleHint": "orient" },
+  { "id": "c2", "companyName": "Samarqand Textile", "contactName": "Dilnoza opa", "system": "Bitrix24", "telegramChatId": "", "titleHint": "textile" },
+  { "id": "c3", "companyName": "Toshkent Med Servis", "contactName": "Rustam", "system": "Online PBX", "telegramChatId": "", "titleHint": "med servis" },
+  { "id": "c4", "companyName": "Baraka Logistics", "contactName": "Aleksey", "system": "AmoCRM", "telegramChatId": "", "titleHint": "baraka" },
+  { "id": "c5", "companyName": "Navro'z Mebel", "contactName": "Shoxrux", "system": "Bitrix24", "telegramChatId": "", "titleHint": "mebel" },
+  { "id": "c6", "companyName": "Silk Road Call", "contactName": "Marina", "system": "Online PBX", "telegramChatId": "", "titleHint": "silk road" }
+]
