@@ -1,32 +1,15 @@
 name: ci
 
+# No checks here: lint, typecheck and tests are run locally. Every push to main builds and pushes the images.
 on:
   push:
-  pull_request:
+    branches: [main]
 
+# Images are built and pushed by the shared workflow in abdul-rozzaq/reusable-workflows.
+# Needs repository variables DOCKER_REGISTRY_NAME, DOCKER_REGISTRY_USERNAME and secrets DOCKER_REGISTRY_TOKEN,
+# TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (the Telegram ones are optional).
 jobs:
-  # Lint, typecheck and unit tests only. The e2e suite needs PostgreSQL + pgvector and is run locally
-  # (pnpm --filter @tp/api test:e2e), not in CI.
-  check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @tp/shared build
-      - run: pnpm --filter @tp/api exec prisma generate
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test
-
-  # Images are built and pushed by the shared workflow in abdul-rozzaq/reusable-workflows.
-  # Needs repository variables DOCKER_REGISTRY_NAME, DOCKER_REGISTRY_USERNAME and secrets DOCKER_REGISTRY_TOKEN,
-  # TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (the Telegram ones are optional).
   images:
-    needs: check
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     strategy:
       fail-fast: false
       matrix:

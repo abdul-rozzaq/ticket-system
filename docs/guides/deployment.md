@@ -35,9 +35,8 @@ AI keys) cannot be decrypted.
 
 `.github/workflows/ci.yml`:
 
-- **check** on every push and pull request: install, build shared, `prisma generate`, lint, typecheck, unit tests.
-  The API e2e suite needs PostgreSQL + pgvector and is run locally, not in CI.
-- **images** on pushes to `main`: builds and pushes four images (`tp-api`, `tp-userbot`, `tp-bot`, `tp-admin`) through the shared
+- There is **no check job**: lint, typecheck and tests (unit and the API e2e suite) are run locally.
+- **images** on every push to `main`: builds and pushes four images (`tp-api`, `tp-userbot`, `tp-bot`, `tp-admin`) through the shared
   workflow [abdul-rozzaq/reusable-workflows](https://github.com/abdul-rozzaq/reusable-workflows) (`docker-build-push.yml`).
 
 Repository settings the images job needs:

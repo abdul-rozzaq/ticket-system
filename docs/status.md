@@ -44,7 +44,7 @@ degradation, foreign folders untouched, hand-edits repaired, deactivation, concu
 
 ## CI
 
-`.github/workflows/ci.yml`: lint, typecheck and unit tests on every push (no PostgreSQL: the API e2e suite is run locally), and on `main` the four images are built and pushed through the shared workflow `abdul-rozzaq/reusable-workflows` (needs registry variables/secrets, see docs/guides/deployment.md). `release-extension.yml` attaches the extension zip to a Release on `v*` tags. **None of the workflows has run on GitHub yet.**
+`.github/workflows/ci.yml`: no checks (lint, typecheck and tests run locally); on every push to `main` the four images are built and pushed through the shared workflow `abdul-rozzaq/reusable-workflows` (needs registry variables/secrets, see docs/guides/deployment.md). `release-extension.yml` attaches the extension zip to a Release on `v*` tags. **None of the workflows has run on GitHub yet.**
 
 ## Forced password change removed
 
