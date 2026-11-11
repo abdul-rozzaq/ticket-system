@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { User } from '@prisma/client';
+import type { User } from '../../common/prisma-client';
 import { createUserSchema, resetPasswordSchema, updateUserSchema } from '@tp/shared';
 import type { z } from 'zod';
 import { CurrentUser, Roles } from '../auth/guards';

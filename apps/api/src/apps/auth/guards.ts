@@ -9,7 +9,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { t, type Role } from '@tp/shared';
-import type { User } from '@prisma/client';
+import type { User } from '../../common/prisma-client';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../../common/prisma.service';
 import { AppError } from '../../common/http';

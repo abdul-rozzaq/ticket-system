@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import type { User } from '@prisma/client';
+import type { User } from '../../common/prisma-client';
 import { z } from 'zod';
 import { PrismaService } from '../../common/prisma.service';
 import { CurrentUser, Public, Roles } from '../auth/guards';

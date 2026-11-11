@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { slaInfo, t } from '@tp/shared';
-import type { Prisma, Ticket } from '@prisma/client';
+import type { Prisma, Ticket } from '../../common/prisma-client';
 import { PrismaService } from '../../common/prisma.service';
 import { TicketsService } from '../tickets/tickets.service';
 import { DomainEvents } from '../../common/domain-events';

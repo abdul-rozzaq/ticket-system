@@ -5,3 +5,6 @@ coverage
 .env
 *.log
 .DS_Store
+
+# generated Prisma client (pnpm --filter @tp/api prisma:generate)
+apps/api/src/generated

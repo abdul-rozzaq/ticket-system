@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '../../common/prisma-client';
 import { folderTitle, staffFolderTitle } from '@tp/shared';
 import { randomUUID } from 'node:crypto';
 import { APP_ENV, Env } from '../../common/env';

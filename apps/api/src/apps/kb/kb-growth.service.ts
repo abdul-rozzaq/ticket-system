@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import type { KbArticle } from '@prisma/client';
+import type { KbArticle } from '../../common/prisma-client';
 import { SYSTEM_TYPES, maskSensitive } from '@tp/shared';
 import { z } from 'zod';
 import { PrismaService } from '../../common/prisma.service';

@@ -5,13 +5,15 @@
 //  - pgvector is used through raw SQL (Unsupported column type).
 
 generator client {
-  provider        = "prisma-client-js"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  moduleFormat    = "cjs" // the API is CommonJS (NestJS)
   previewFeatures = ["postgresqlExtensions"]
 }
 
+// The connection URL lives in prisma.config.ts (Prisma 7) and in the driver adapter (common/prisma.service.ts).
 datasource db {
   provider   = "postgresql"
-  url        = env("DATABASE_URL")
   extensions = [vector]
 }
 

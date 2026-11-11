@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { randomUUID } from 'node:crypto';
 import { t } from '@tp/shared';
-import type { Role, User } from '@prisma/client';
+import type { Role, User } from '../../common/prisma-client';
 import { APP_ENV, Env } from '../../common/env';
 import { PrismaService } from '../../common/prisma.service';
 import { CryptoService } from '../../common/crypto.service';

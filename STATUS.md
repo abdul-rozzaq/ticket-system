@@ -42,6 +42,10 @@ degradation, foreign folders untouched, hand-edits repaired, deactivation, concu
 5. **P6:** retrieval does not use `KbChunk` text for full-text search (it searches the article text; the GIN index matches that expression); chunks exist for vectors. Draft model prompts are English while drafts follow the customer's language. Embeddings need an OpenAI-compatible provider.
 6. **Claimed-then-crashed userbot commands** are swept (P8): after 5 minutes login and request/response commands fail, idempotent ones (delete own command message, discovery, logout) are re-queued for up to an hour.
 
+## Prisma 7 upgrade
+
+Prisma 6.19 -> **7.10.1** (newest stable; the npm `latest` tag points to an 8.0 release candidate, deliberately not used). Breaking changes handled: new `prisma-client` generator (CJS output into `src/generated`), mandatory driver adapter (`@prisma/adapter-pg`), `prisma.config.ts`, no automatic `.env` loading, imports through one barrel. Verified: typecheck, lint, 70 unit tests, full e2e (see header), migrations applied from the pruned Docker image on a fresh database, container boots and logs in. Behaviour differences to watch in real use: the pg pool has no built-in 5 s connect timeout (set to 10 s in code), SSL certificates are now verified strictly (set `ssl` on the adapter if your database uses a self-signed one).
+
 ## Honest summary
 
 Roughly 70 % of the specification exists (P1-P7 and the admin panel; P8 hardening/extras partly done). The extension integration has never run in a real browser. The backend core and the whole userbot/intake logic are real and tested

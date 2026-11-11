@@ -5,3 +5,5 @@ coverage
 pnpm-lock.yaml
 apps/extension
 apps/admin/next-env.d.ts
+
+apps/api/src/generated

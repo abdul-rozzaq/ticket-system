@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { User } from '@prisma/client';
+import type { User } from '../../common/prisma-client';
 import { parseCallback, slaInfo, t, userShortId } from '@tp/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { TicketsService } from '../tickets/tickets.service';

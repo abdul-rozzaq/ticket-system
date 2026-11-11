@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../common/prisma-client';
 import { workingHoursSchema } from '@tp/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { CryptoService } from '../../common/crypto.service';

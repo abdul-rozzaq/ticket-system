@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { Prisma, type KbArticle, type KbStatus } from '@prisma/client';
+import { Prisma, type KbArticle, type KbStatus } from '../../common/prisma-client';
 import { SYSTEM_TYPES, chunkText, patchOf } from '@tp/shared';
 import { z } from 'zod';
 import { PrismaService } from '../../common/prisma.service';

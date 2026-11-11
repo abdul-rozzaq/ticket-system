@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Prisma, type ClientGroup, type Ticket } from '@prisma/client';
+import { Prisma, type ClientGroup, type Ticket } from '../../common/prisma-client';
 import { maskSensitive, normalizePeerId, parseStoredPeer, type AiClassification } from '@tp/shared';
 import { APP_ENV, Env } from '../../common/env';
 import { PrismaService } from '../../common/prisma.service';

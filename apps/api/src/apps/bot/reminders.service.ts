@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Prisma, type User } from '@prisma/client';
+import { Prisma, type User } from '../../common/prisma-client';
 import { slaInfo, t, workingHoursSchema, type WorkingHours } from '@tp/shared';
 import { APP_ENV, Env } from '../../common/env';
 import { PrismaService } from '../../common/prisma.service';

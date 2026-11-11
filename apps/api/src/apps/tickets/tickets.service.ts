@@ -1,5 +1,11 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { Prisma, type Ticket, type TicketStatus, type Urgency, type SystemType } from '@prisma/client';
+import {
+  Prisma,
+  type Ticket,
+  type TicketStatus,
+  type Urgency,
+  type SystemType,
+} from '../../common/prisma-client';
 import { maskSensitive, slaInfo, t, ticketFilterSchema } from '@tp/shared';
 import type { z } from 'zod';
 import { PrismaService } from '../../common/prisma.service';

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Prisma, type UserbotCommand } from '@prisma/client';
+import { Prisma, type UserbotCommand } from '../../common/prisma-client';
 import { PrismaService } from '../../common/prisma.service';
 import { CryptoService } from '../../common/crypto.service';
 

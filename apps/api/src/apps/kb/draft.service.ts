@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import type { Prisma, TicketMessage, User } from '@prisma/client';
+import type { Prisma, TicketMessage, User } from '../../common/prisma-client';
 import { detectLang, draftOutcome, maskSensitive } from '@tp/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { AiService } from '../ai/ai.service';

@@ -10,7 +10,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { User } from '@prisma/client';
+import type { User } from '../../common/prisma-client';
 import { assignSchema, closeTicketSchema, noteSchema, setStatusSchema, ticketFilterSchema } from '@tp/shared';
 import { z } from 'zod';
 import { CurrentUser } from '../auth/guards';

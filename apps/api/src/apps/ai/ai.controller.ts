@@ -7,7 +7,7 @@ import { CryptoService } from '../../common/crypto.service';
 import { AuditService } from '../../common/audit.service';
 import { CurrentUser, Roles } from '../auth/guards';
 import { AppError, ZodPipe } from '../../common/http';
-import type { User } from '@prisma/client';
+import type { User } from '../../common/prisma-client';
 import { AiService, IntakeClassifier } from './ai.service';
 
 const providerSchema = z.object({

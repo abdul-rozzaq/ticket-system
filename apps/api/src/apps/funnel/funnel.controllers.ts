@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { User } from '@prisma/client';
+import type { User } from '../../common/prisma-client';
 import { SYSTEM_TYPES } from '@tp/shared';
 import { z } from 'zod';
 import { AuditService } from '../../common/audit.service';

@@ -14,7 +14,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { User } from '@prisma/client';
+import type { User } from '../../common/prisma-client';
 import { slaPolicySchema } from '@tp/shared';
 import { z } from 'zod';
 import { PrismaService } from '../../common/prisma.service';

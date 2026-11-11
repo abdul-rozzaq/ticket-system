@@ -125,7 +125,7 @@ apps/                                feature modules (business logic)
   demo/      DEMO_MODE seed
 common/                              cross-cutting code
   env.ts, config.module.ts           validated environment
-  prisma.service.ts, crypto.service.ts (AES-256-GCM), http.ts (AppError, ZodPipe)
+  prisma.service.ts (Prisma 7 + pg adapter), prisma-client.ts (the only import of the generated client), crypto.service.ts (AES-256-GCM), http.ts (AppError, ZodPipe)
   audit.service.ts, domain-events.ts (in-process event bus), settings.service.ts
   realtime.gateway.ts (Socket.IO), health.controller.ts
   domain/                            pure, framework-free rules (assignment, intake rules, folder planner) + their tests
@@ -135,3 +135,9 @@ Rules: features import `common`, never the other way round, with one deliberate 
 (`health.controller`, `settings.service`, `realtime.gateway`) use `apps/auth` (guards/decorators, token verification).
 Features talk to each other through their Nest modules, not by reaching into another feature's internals. Unit tests sit next
 to the code (`*.spec.ts`); e2e tests are in `test/`.
+
+### Prisma 7 notes
+
+- The client is generated into `src/generated/prisma` (gitignored, `moduleFormat = "cjs"`; `pnpm test`, `typecheck`, `build` and `dev` generate it first) and compiled into `dist` with the rest. Import it only through `common/prisma-client.ts`.
+- The runtime connection comes from the `@prisma/adapter-pg` adapter in `PrismaService` (DATABASE_URL, 10 s connection timeout); `prisma.config.ts` gives the CLI (migrate, generate) the same URL. Prisma no longer reads `.env` itself: `dotenv` does it for local use, Docker passes real environment variables.
+- The runtime image needs `prisma` (migrations at start), `@prisma/client` (query compiler), `@prisma/adapter-pg` and `pg` as production dependencies.

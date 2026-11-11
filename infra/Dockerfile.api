@@ -8,12 +8,12 @@ COPY apps/api/package.json apps/api/
 RUN pnpm install --frozen-lockfile --filter @tp/api... --filter @tp/shared...
 COPY packages/shared packages/shared
 COPY apps/api apps/api
+# Prisma 7: the client is generated into src/generated and compiled into dist with the rest of the code.
 # deploy = production-only tree: no dev dependencies, no sources, @tp/shared copied in
 RUN pnpm --filter @tp/shared build \
  && pnpm --filter @tp/api exec prisma generate \
  && pnpm --filter @tp/api build \
- && pnpm --filter @tp/api deploy --legacy --prod /out \
- && cd /out && ./node_modules/.bin/prisma generate
+ && pnpm --filter @tp/api deploy --legacy --prod /out
 
 FROM node:22-alpine AS run
 RUN apk add --no-cache openssl

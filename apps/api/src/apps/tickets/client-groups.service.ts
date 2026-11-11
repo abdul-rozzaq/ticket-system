@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../common/prisma-client';
 import { clientGroupSchema, normalizePeerId, parseStoredPeer, type PeerRef } from '@tp/shared';
 import type { z } from 'zod';
 import { PrismaService } from '../../common/prisma.service';

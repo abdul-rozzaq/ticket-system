@@ -1,10 +1,10 @@
 import { Controller, Get, Body, Put, Injectable, Module, Global } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Prisma } from '@prisma/client';
+import { Prisma } from './prisma-client';
 import { DEFAULT_SETTINGS } from '@tp/shared';
 import { z } from 'zod';
 import { PrismaService } from './prisma.service';
-import type { User } from '@prisma/client';
+import type { User } from './prisma-client';
 import { CurrentUser, Roles } from '../apps/auth/guards';
 import { AuditService } from './audit.service';
 import { ZodPipe } from './http';

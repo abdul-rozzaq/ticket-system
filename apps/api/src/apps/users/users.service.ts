@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable, OnApplicationBootstrap, Logger, Inject } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../common/prisma-client';
 import type { createUserSchema, updateUserSchema } from '@tp/shared';
 import type { z } from 'zod';
 import { APP_ENV, Env } from '../../common/env';

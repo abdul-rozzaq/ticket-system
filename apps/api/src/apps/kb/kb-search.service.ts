@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { KbArticle, Template } from '@prisma/client';
+import type { KbArticle, Template } from '../../common/prisma-client';
 import { detectLang, isRelevant, matchStats, queryStems } from '@tp/shared';
 import { PrismaService } from '../../common/prisma.service';
 import { SettingsService } from '../../common/settings.service';

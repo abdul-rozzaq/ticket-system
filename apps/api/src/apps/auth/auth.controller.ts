@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, Post, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
-import type { User } from '@prisma/client';
+import type { User } from '../../common/prisma-client';
 import { changePasswordSchema, loginSchema, refreshSchema } from '@tp/shared';
 import { z } from 'zod';
 import { AuthService, publicUser } from './auth.service';

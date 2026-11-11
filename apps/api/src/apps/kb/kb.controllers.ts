@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import type { User } from '@prisma/client';
+import type { User } from '../../common/prisma-client';
 import { aiDraftRequestSchema, SYSTEM_TYPES } from '@tp/shared';
 import { z } from 'zod';
 import { AuditService } from '../../common/audit.service';
