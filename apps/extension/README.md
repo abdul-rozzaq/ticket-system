@@ -43,3 +43,16 @@ harness/          static fake Telegram pages for DOM experiments (dev only)
 ```
 
 `pnpm --filter @tp/extension test` runs the unit tests (session/refresh, badges, helpers, DOM parsing).
+
+## Release from GitHub
+
+Push a tag and GitHub builds the extension and attaches it to a Release (`.github/workflows/release-extension.yml`):
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+The tag must look like `v1.2.3`; it becomes the extension version. Install: download `tp-assistant-v0.2.0.zip` from the
+Release, unzip, open `chrome://extensions`, enable Developer mode, **Load unpacked**, choose the unzipped folder.
+There is no auto-update: to update, download the new zip and reload the extension (or replace the folder and press reload).
