@@ -10,7 +10,7 @@ automated tests (which use fakes). Run these before trusting the corresponding f
 ## 0. Preparation
 
 1. Create a Telegram app at <https://my.telegram.org> → "API development tools" → note `api_id` / `api_hash`.
-2. Use a **throwaway test account** first, not the production TP account (ban risk, see STATUS.md → Open risks).
+2. Use a **throwaway test account** first, not the production TP account (ban risk, see status.md → Open risks).
 3. Create two test groups (a normal group and a supergroup) containing the test account and a second "customer" account.
 4. Fill `infra/.env` (`TG_API_ID`, `TG_API_HASH`, `SERVICE_TOKEN`, …) and start the stack (or `pnpm --filter @tp/api dev` + `pnpm --filter @tp/userbot dev`).
 5. In the panel: log in as admin. Create a staff user (the password you set works immediately).

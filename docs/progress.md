@@ -1,7 +1,7 @@
 # Progress: done and remaining
 
-Short overview. Details and honest verification state per area: [STATUS.md](../STATUS.md), [FEATURES.md](../FEATURES.md).
-Real-service checks still to do by hand: [MANUAL_TESTS.md](../MANUAL_TESTS.md).
+Short overview. Details and honest verification state per area: [status.md](status.md), [features.md](features.md).
+Real-service checks still to do by hand: [manual-tests.md](testing/manual-tests.md).
 
 ## Done
 
@@ -15,14 +15,14 @@ Real-service checks still to do by hand: [MANUAL_TESTS.md](../MANUAL_TESTS.md).
 | Admin API additions              | Audit log, SLA policies, statistics + CSV, settings audit, `patchOf` (PATCH no longer resets defaults), group activation confirms                                                                                        |
 | **Admin panel** (`apps/admin`)   | BFF login (httpOnly cookies, CSRF, single-flight refresh), role-based nav, all pages: dashboard, Kanban, tickets, filtered, groups, users, templates, KB, settings, Telegram, AI, statistics, audit                      |
 | **Extension** (`apps/extension`) | Server mode: login, ticket card by chat, actions, notes, templates, AI draft, `.ai` over realtime, activity ping, notifications, badge; 57 unit tests + contract smoke against the real API                              |
-| P8 (partly)                      | Stale-command sweeper, extension chat-list dots from the server (`/tickets/open-chats`), `ARCHITECTURE.md`, pruned API image (753 MB) verified to boot                                                                   |
+| P8 (partly)                      | Stale-command sweeper, extension chat-list dots from the server (`/tickets/open-chats`), `architecture.md`, pruned API image (753 MB) verified to boot                                                                   |
 | Infra                            | Dockerfiles (api, userbot, bot, admin), compose, `.env.example`, CI workflow, pnpm 12 `allowBuilds` fix, `.dockerignore`; admin and api images built, admin container run against the API                                |
 | Tests                            | shared 57, userbot 47, bot 26, api unit 68, admin 13, extension 57, api e2e 166 against real PostgreSQL                                                                                                                  |
 
 ## Remaining
 
 1. **Extension in a real browser:** load it in Chrome, run MANUAL_TESTS §11 (service-worker lifetime with the websocket, send detection on WebK/WebA, `.ai` round trip), then fix what breaks. Still local-only: reminders, tags, favourites.
-2. **P8 leftovers:** run the CI workflow once, review spec section 12 extras one by one, drop unused `bullmq`/`ioredis`/Redis, shrink the API image further if it matters.
+2. **P8 leftovers:** run the CI workflow once on GitHub (set the registry variables/secrets first, see guides/deployment.md), review spec section 12 extras one by one, drop unused `bullmq`/`ioredis`/Redis, shrink the API image further if it matters.
 3. **Admin panel gaps:** live updates over WebSocket (pages poll every 15-30 s), Russian dictionary (empty stub), browser e2e tests, per-staff folder status in the users table.
-4. **Verification against real services (nothing has touched them yet):** real Telegram account (userbot login, discovery, folder sync, commands), real bot token and internal group, real AI provider (completions and embeddings; tune `kb.maxVectorDistance`), Telegram Web selectors in the extension. Follow MANUAL_TESTS.md sections 1-10.
+4. **Verification against real services (nothing has touched them yet):** real Telegram account (userbot login, discovery, folder sync, commands), real bot token and internal group, real AI provider (completions and embeddings; tune `kb.maxVectorDistance`), Telegram Web selectors in the extension. Follow manual-tests.md sections 1-10.
 5. **Open risks:** Telegram ToS/ban risk of the shared userbot account, folder limits (Premium recommended), single API instance assumption (in-process events), panel refresh cache is in-process (sticky sessions when scaling), set `COOKIE_SECURE=true` behind HTTPS.

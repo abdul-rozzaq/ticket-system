@@ -4,7 +4,7 @@ Internal ticket system for a 2–3 person technical-support team that answers cu
 Telegram group chats through one shared TP account. All code/docs in English, all user-visible strings in Uzbek (Latin) behind
 an i18n dictionary (`uz` default, `ru` can be added).
 
-This file is the single source of truth for decisions. `STATUS.md` records what is actually done and verified.
+This file is the single source of truth for decisions. `status.md` records what is actually done and verified.
 
 ## 1. Decisions made without asking
 
@@ -94,7 +94,7 @@ The authoritative schema is `apps/api/prisma/schema.prisma`.
 | P7    | extension on real data (login, WS, features), send-activity ping, badges                                                          | build + unit (id normalisation); DOM parts MANUAL                                          |
 | P8    | stats, extras, hardening, docs                                                                                                    | docs complete; `docker compose up` with demo seed — MANUAL                                 |
 
-## 6. Risks (see also the end of STATUS.md)
+## 6. Risks (see also the end of status.md)
 
 Userbot on a shared account violates Telegram's expectations for automation (ban risk); folder limits; Telegram Web DOM drift;
 AI cost; one account shared by several humans makes attribution heuristic only.

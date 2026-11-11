@@ -18,7 +18,7 @@ exactly that host.
 
 ## What it does
 
-See `../../FEATURES.md` (Extension rows) and `../../MANUAL_TESTS.md` section 11 for what is verified. In short: ticket card and
+See [docs/features.md](../../docs/features.md) (Extension rows) and [docs/testing/manual-tests.md](../../docs/testing/manual-tests.md) section 11 for what is verified. In short: ticket card and
 actions, internal notes, server templates (`;` quick trigger, palette Ctrl+K), AI drafts (button, message menu or `.ai` in
 the chat), suggestion chips, chat-list status dots, notifications and badge, activity ping when a human presses Send.
 

@@ -63,7 +63,7 @@ const splitList = (s: unknown): string[] =>
 const isUnique = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
 
 /**
- * The intake pipeline (see PLAN.md §7). Order for a new incoming message in an active customer group:
+ * The intake pipeline (see docs/plan.md §7). Order for a new incoming message in an active customer group:
  *   1. open ticket exists      -> attach (refreshes activity), no AI
  *   2. rules pre-filter        -> FilteredMessage (emoji, too short, thanks/ack ...)
  *   3. debounce buffer         -> one problem = one ticket even if the customer sends 5 messages

@@ -1,7 +1,7 @@
 // GramJS (MTProto) implementation of TelegramUserClient.
 //
 // NOT VERIFIED against a real Telegram account: this file compiles against GramJS 2.26 typings and follows its
-// documented flows, but it has never talked to Telegram. See MANUAL_TESTS.md before trusting it.
+// documented flows, but it has never talked to Telegram. See docs/testing/manual-tests.md before trusting it.
 import bigInt from 'big-integer';
 import { Api, TelegramClient } from 'telegram';
 import { NewMessage, type NewMessageEvent } from 'telegram/events';

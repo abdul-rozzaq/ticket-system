@@ -1,7 +1,7 @@
 // grammY implementation of BotGateway (Telegram Bot API).
 //
 // NOT VERIFIED against the real Telegram Bot API: it compiles against grammY 1.x typings and follows its documented
-// usage, but it has never talked to Telegram. See MANUAL_TESTS.md (bot section).
+// usage, but it has never talked to Telegram. See docs/testing/manual-tests.md (bot section).
 import { createServer, type Server } from 'node:http';
 import { Bot, GrammyError, HttpError, InlineKeyboard, webhookCallback } from 'grammy';
 import {

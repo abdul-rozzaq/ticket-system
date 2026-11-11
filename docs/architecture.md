@@ -1,7 +1,7 @@
 # Architecture
 
-How the system fits together and why. What is verified and what is not: [STATUS.md](../STATUS.md). Decisions and
-deviations from the original spec: [PLAN.md](../PLAN.md) and the "Deviations" list in STATUS.md.
+How the system fits together and why. What is verified and what is not: [status.md](status.md). Decisions and
+deviations from the original spec: [plan.md](plan.md) and the "Deviations" list in status.md.
 
 ## 1. Components
 
@@ -101,12 +101,12 @@ forwards events to the panels.
 | API restart                     | outboxes and buffers are tables, nothing in memory is required; the extension reconnects its socket and refreshes its token |
 | refresh token reuse             | the whole token family is revoked; panel and extension fall back to the login screen                                        |
 
-## 7. Known limits (see STATUS.md for the full list)
+## 7. Known limits (see status.md for the full list)
 
 - Single API instance (in-process events; the panel's refresh cache is per process).
 - Nothing has run against a real Telegram account, a real AI provider, or in a real Chrome with Telegram Web.
 - GramJS and grammY adapters are written from documentation and unverified; everything above them is tested with fakes.
-- The API image is large (the whole workspace); slimming it is tracked in docs/PROGRESS.md.
+- The API image is large (the whole workspace); slimming it is tracked in docs/progress.md.
 
 ## 8. Code layout of `apps/api/src`
 
