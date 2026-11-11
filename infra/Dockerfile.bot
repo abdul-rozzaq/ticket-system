@@ -3,16 +3,18 @@ FROM node:22-alpine AS build
 RUN corepack enable
 WORKDIR /repo
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json ./
+COPY packages/shared/package.json packages/shared/
 COPY apps/bot/package.json apps/bot/
-RUN pnpm install --frozen-lockfile --filter @tp/bot...
+RUN pnpm install --frozen-lockfile --filter @tp/bot... --filter @tp/shared...
+COPY packages/shared packages/shared
 COPY apps/bot apps/bot
-RUN pnpm --filter @tp/bot build
+# deploy = production-only tree (no dev dependencies, no sources, workspace packages copied in)
+RUN pnpm --filter @tp/shared build  && pnpm --filter @tp/bot build  && pnpm --filter @tp/bot deploy --legacy --prod /out
 
 FROM node:22-alpine AS run
-RUN corepack enable
-WORKDIR /repo
+WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=build /repo /repo
-WORKDIR /repo/apps/bot
+COPY --from=build /out ./
+USER node
 # No database. Long polling needs no inbound port; webhook mode listens on BOT_WEBHOOK_PORT.
 CMD ["node", "dist/main.js"]

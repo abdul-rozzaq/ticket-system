@@ -37,7 +37,9 @@ export const envSchema = z.object({
 export type Env = z.infer<typeof envSchema>;
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  const parsed = envSchema.safeParse(source);
+  // docker compose passes unset optional variables as empty strings: treat them as not set
+  const cleaned = Object.fromEntries(Object.entries(source).filter(([, v]) => v !== ''));
+  const parsed = envSchema.safeParse(cleaned);
   if (!parsed.success) {
     const lines = parsed.error.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`);
     throw new Error(`Invalid environment configuration:\n${lines.join('\n')}`);

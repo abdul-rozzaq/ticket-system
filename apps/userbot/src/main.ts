@@ -14,7 +14,8 @@ const env = z
     /** Run with an in-memory fake instead of MTProto (demo / smoke tests). */
     USERBOT_FAKE: z.enum(['true', 'false']).default('false'),
   })
-  .parse(process.env);
+  // docker compose passes unset optional variables as empty strings: treat them as not set
+  .parse(Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== '')));
 
 /** Structured one-line JSON logs. Callers must never pass message text, phone numbers, codes or sessions. */
 const logger: Logger = {

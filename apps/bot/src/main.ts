@@ -17,7 +17,8 @@ const env = z
     /** In-memory fake instead of Telegram (smoke tests). */
     BOT_FAKE: z.enum(['true', 'false']).default('false'),
   })
-  .parse(process.env);
+  // docker compose passes unset optional variables as empty strings: treat them as not set
+  .parse(Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== '')));
 
 const logger: Logger = {
   info: (msg, meta) => console.log(JSON.stringify({ level: 'info', msg, ...meta })),

@@ -22,7 +22,7 @@ Real-service checks still to do by hand: [MANUAL_TESTS.md](../MANUAL_TESTS.md).
 ## Remaining
 
 1. **Extension in a real browser:** load it in Chrome, run MANUAL_TESTS §11 (service-worker lifetime with the websocket, send detection on WebK/WebA, `.ai` round trip), then fix what breaks. Still local-only: reminders, tags, favourites.
-2. **P8 leftovers:** rebuild the userbot/bot images and start the whole compose stack once, run the CI workflow, review spec section 12 extras one by one, drop unused `bullmq`/`ioredis`/Redis, shrink the API image further if it matters.
+2. **P8 leftovers:** run the CI workflow once, review spec section 12 extras one by one, drop unused `bullmq`/`ioredis`/Redis, shrink the API image further if it matters.
 3. **Admin panel gaps:** live updates over WebSocket (pages poll every 15-30 s), Russian dictionary (empty stub), browser e2e tests, per-staff folder status in the users table.
 4. **Verification against real services (nothing has touched them yet):** real Telegram account (userbot login, discovery, folder sync, commands), real bot token and internal group, real AI provider (completions and embeddings; tune `kb.maxVectorDistance`), Telegram Web selectors in the extension. Follow MANUAL_TESTS.md sections 1-10.
 5. **Open risks:** Telegram ToS/ban risk of the shared userbot account, folder limits (Premium recommended), single API instance assumption (in-process events), panel refresh cache is in-process (sticky sessions when scaling), set `COOKIE_SECURE=true` behind HTTPS.
