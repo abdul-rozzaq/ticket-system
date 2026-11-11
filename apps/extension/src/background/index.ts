@@ -1,9 +1,6 @@
-// Background service worker: LLM calls (F9), reminders + notifications + badge (F14), side panel (F15).
-import Anthropic from '@anthropic-ai/sdk';
-import { getMock, getSettings, KEYS, patchDiag, updateMock } from '../shared/storage';
-import type { LlmResponse, Msg } from '../shared/messages';
-import type { LlmSettings } from '../shared/types';
-import { isOverdue } from '../logic/sla';
+// Background service worker: ticket server session + API proxy, realtime, notifications + badge (F14), side panel (F15).
+import { getSettings, KEYS } from '../shared/storage';
+import type { Msg } from '../shared/messages';
 import { Realtime } from './realtime';
 import { createPingThrottle, SERVER_KEY, ServerClient, type ServerSession } from '../server/session';
 
@@ -103,49 +100,18 @@ chrome.action.onClicked.addListener(async (tab) => {
 
 // ---------- badge (overdue count) ----------
 async function refreshBadge() {
-  const [mock, s] = await Promise.all([getMock(), getSettings()]);
-  if (!s.flags.F14) {
+  const s = await getSettings();
+  if (!s.flags.F14 || !(await server.status()).connected) {
     await chrome.action.setBadgeText({ text: '' });
+    await chrome.action.setTitle({ title: 'TP Assistant' });
     return;
   }
-  let n = mock.tickets.filter((t) => isOverdue(t)).length;
-  if ((await server.status()).connected) {
-    // server mode: the person's own overdue tickets (admins: all overdue)
-    const r = await server.request<{ open: { overdue: number }; mine: { overdue: number } | null }>('stats/dashboard');
-    n = r.ok ? (r.data.mine?.overdue ?? r.data.open.overdue) : 0;
-  }
+  // the person's own overdue tickets (admins: all overdue)
+  const r = await server.request<{ open: { overdue: number }; mine: { overdue: number } | null }>('stats/dashboard');
+  const n = r.ok ? (r.data.mine?.overdue ?? r.data.open.overdue) : 0;
   await chrome.action.setBadgeBackgroundColor({ color: n ? '#e53935' : '#43a047' });
   await chrome.action.setBadgeText({ text: n ? String(n) : '' });
   await chrome.action.setTitle({ title: n ? `TP Assistant — ${n} ta tiket muddati o'tgan` : 'TP Assistant' });
-}
-
-// ---------- reminders ----------
-async function syncReminderAlarms() {
-  const mock = await getMock();
-  const alarms = await chrome.alarms.getAll();
-  const existing = new Set(alarms.filter((a) => a.name.startsWith('rem:')).map((a) => a.name));
-  const wanted = new Set<string>();
-  for (const r of mock.reminders) {
-    const name = `rem:${r.id}`;
-    wanted.add(name);
-    if (!existing.has(name)) await chrome.alarms.create(name, { when: Math.max(Date.now() + 1000, new Date(r.at).getTime()) });
-  }
-  for (const name of existing) if (!wanted.has(name)) await chrome.alarms.clear(name);
-}
-
-async function fireReminder(id: string) {
-  const mock = await getMock();
-  const r = mock.reminders.find((x) => x.id === id);
-  if (!r) return;
-  await chrome.notifications.create(`rem:${r.id}:${r.chatId}`, {
-    type: 'basic',
-    iconUrl: chrome.runtime.getURL('icons/icon128.png'),
-    title: `Eslatma: ${r.chatTitle}`,
-    message: r.text || 'Chatga qaytish vaqti',
-    priority: 2,
-    requireInteraction: true,
-  });
-  await updateMock((m) => ({ ...m, reminders: m.reminders.filter((x) => x.id !== id) }));
 }
 
 async function focusTelegramChat(chatId: string | null) {
@@ -160,105 +126,23 @@ async function focusTelegramChat(chatId: string | null) {
   if (chatId) chrome.tabs.sendMessage(tab.id, { type: 'TP_NAVIGATE', chatId } satisfies Msg).catch(() => undefined);
 }
 
+// clicking a notification brings the Telegram tab to the front
 chrome.notifications.onClicked.addListener((notifId) => {
-  const m = /^rem:[^:]+:(.*)$/.exec(notifId);
-  focusTelegramChat(m ? m[1] : null);
+  void focusTelegramChat(null);
   chrome.notifications.clear(notifId);
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'tp-badge') refreshBadge();
-  else if (alarm.name.startsWith('rem:')) fireReminder(alarm.name.slice(4));
+  if (alarm.name === 'tp-badge') void refreshBadge();
 });
-
-// ---------- LLM ----------
-const FALLBACK_MODELS = new Set(['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-opus-5', 'claude-fable-5-1']);
-
-async function callLlm(llm: LlmSettings, system: string, user: string): Promise<LlmResponse> {
-  const t0 = performance.now();
-  const base: LlmResponse = { ok: false, text: '', ms: 0, inputTokens: null, outputTokens: null, model: llm.model, error: null };
-  if (!llm.apiKey) return { ...base, error: "API kalit kiritilmagan (Sozlamalar)" };
-  try {
-    if (llm.provider === 'anthropic') {
-      const client = new Anthropic({
-        apiKey: llm.apiKey,
-        baseURL: llm.endpoint || undefined,
-        dangerouslyAllowBrowser: true, // key is the user's own, stored locally; requests go only to the configured host
-        maxRetries: 1,
-      });
-      const params: Record<string, unknown> = {
-        model: llm.model,
-        max_tokens: 1024,
-        system,
-        output_config: { effort: 'low' },
-        messages: [{ role: 'user', content: user }],
-      };
-      // Server-side refusal fallback (opt-in) for models that support it.
-      if (FALLBACK_MODELS.has(llm.model)) {
-        params.betas = ['server-side-fallback-2026-07-01'];
-        params.fallbacks = 'default';
-      }
-      const res = (await client.beta.messages.create(params as never)) as unknown as Anthropic.Beta.BetaMessage;
-      const text = res.content
-        .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text')
-        .map((b) => b.text)
-        .join('')
-        .trim();
-      if (res.stop_reason === 'refusal') return { ...base, ms: Math.round(performance.now() - t0), error: 'Model rad etdi (refusal)' };
-      return {
-        ok: true,
-        text,
-        ms: Math.round(performance.now() - t0),
-        inputTokens: res.usage?.input_tokens ?? null,
-        outputTokens: res.usage?.output_tokens ?? null,
-        model: res.model,
-        error: null,
-      };
-    }
-    // OpenAI-compatible chat completions endpoint (user-requested alternative provider).
-    const url = `${llm.endpoint.replace(/\/+$/, '')}/chat/completions`;
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${llm.apiKey}` },
-      body: JSON.stringify({
-        model: llm.model,
-        max_tokens: 1024,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
-      }),
-    });
-    const json = await r.json();
-    if (!r.ok) return { ...base, ms: Math.round(performance.now() - t0), error: `${r.status}: ${JSON.stringify(json).slice(0, 300)}` };
-    return {
-      ok: true,
-      text: String(json.choices?.[0]?.message?.content ?? '').trim(),
-      ms: Math.round(performance.now() - t0),
-      inputTokens: json.usage?.prompt_tokens ?? null,
-      outputTokens: json.usage?.completion_tokens ?? null,
-      model: json.model ?? llm.model,
-      error: null,
-    };
-  } catch (e) {
-    const err = e instanceof Anthropic.APIError ? `${e.status ?? ''} ${e.message}` : String(e);
-    return { ...base, ms: Math.round(performance.now() - t0), error: err };
-  }
-}
 
 // ---------- messaging ----------
 chrome.runtime.onMessage.addListener((msg: Msg, sender, sendResponse) => {
   (async () => {
     switch (msg.type) {
-      case 'TP_LLM': {
-        const s = await getSettings();
-        if (!s.flags.F9_LLM) return sendResponse({ ok: false, error: "Haqiqiy LLM o'chirilgan" });
-        const res = await callLlm(s.llm, msg.system, msg.user);
-        await patchDiag({ llmLast: { at: new Date().toISOString(), ms: res.ms, inputTokens: res.inputTokens, outputTokens: res.outputTokens, model: res.model, error: res.error } });
-        return sendResponse(res);
-      }
-      case 'TP_LLM_TEST':
-        return sendResponse(await callLlm(msg.llm, 'Reply with the single word OK.', 'ping'));
+      case 'TP_OPEN_OPTIONS':
+        await chrome.runtime.openOptionsPage();
+        return sendResponse(true);
       case 'TP_SRV_LOGIN': {
         const r = await server.login(msg.baseUrl, msg.username, msg.password);
         if (r.ok) void refreshBadge();
@@ -281,9 +165,6 @@ chrome.runtime.onMessage.addListener((msg: Msg, sender, sendResponse) => {
         const r = await server.request('activity', { method: 'POST', body: { chatId: msg.chatId } });
         return sendResponse(r.ok);
       }
-      case 'TP_REMINDER_SYNC':
-        await syncReminderAlarms();
-        return sendResponse(true);
       case 'TP_BADGE_REFRESH':
         await refreshBadge();
         return sendResponse(true);
@@ -315,18 +196,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
     void refreshBadge();
     void realtime.sync(); // login -> connect, logout -> disconnect, token refresh -> no-op (same server)
   }
-  if (changes[KEYS.mock]) {
-    refreshBadge();
-    syncReminderAlarms();
-  }
 });
 
 async function init() {
-  await getMock(); // seeds on first run
   await applyPanelBehavior();
   await chrome.alarms.create('tp-badge', { periodInMinutes: 1 });
   await refreshBadge();
-  await syncReminderAlarms();
   await realtime.sync();
 }
 void realtime.sync(); // the worker was woken up (message, alarm): make sure the channel is up

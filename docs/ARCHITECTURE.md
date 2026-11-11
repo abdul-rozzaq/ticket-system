@@ -122,7 +122,6 @@ apps/                                feature modules (business logic)
   kb/        knowledge base, search, AI drafts, KB growth
   ai/        provider adapters, usage and budget, AI settings endpoints
   admin/     audit log API, SLA policies, statistics + CSV
-  demo/      DEMO_MODE seed
 common/                              cross-cutting code
   env.ts, config.module.ts           validated environment
   prisma.service.ts (Prisma 7 + pg adapter), prisma-client.ts (the only import of the generated client), crypto.service.ts (AES-256-GCM), http.ts (AppError, ZodPipe)

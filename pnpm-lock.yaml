@@ -367,9 +367,6 @@ importers:
 
   apps/extension:
     dependencies:
-      '@anthropic-ai/sdk':
-        specifier: ^1.6.0
-        version: 1.6.0(zod@4.6.7)
       preact:
         specifier: ^11.2.0
         version: 11.2.0

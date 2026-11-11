@@ -45,8 +45,6 @@ services:
       SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME:-admin}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?set SEED_ADMIN_PASSWORD}
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
-      DEMO_MODE: ${DEMO_MODE:-false}
-      DEMO_PASSWORD: ${DEMO_PASSWORD:-}
       SERVICE_TOKEN: ${SERVICE_TOKEN:?set SERVICE_TOKEN (16+ chars)}
     ports:
       - '${API_PORT:-3000}:3000'
@@ -76,7 +74,6 @@ services:
       # Get these at https://my.telegram.org -> API development tools
       TG_API_ID: ${TG_API_ID:-}
       TG_API_HASH: ${TG_API_HASH:-}
-      USERBOT_FAKE: ${USERBOT_FAKE:-false}
 
   bot:
     build:
@@ -93,7 +90,6 @@ services:
       BOT_MODE: ${BOT_MODE:-polling}
       BOT_WEBHOOK_URL: ${BOT_WEBHOOK_URL:-}
       BOT_WEBHOOK_SECRET: ${BOT_WEBHOOK_SECRET:-}
-      BOT_FAKE: ${BOT_FAKE:-false}
 
   admin:
     build:

@@ -1,8 +1,5 @@
 // F11: status dots in the chat list. This is the one feature that injects nodes into Telegram's own DOM
 // (an overlay would have to track every row while scrolling). Nodes carry data-tp so we can find/skip them.
-import type { MockState } from '../shared/types';
-import { findClientForChat, currentTicket } from '../logic/tickets';
-import { isOverdue } from '../logic/sla';
 import { debounce, detectVersion, q, qAll, textOf, warn } from '../telegram/dom';
 import { CHAT_LIST_PEER_ATTRS } from '../telegram/selectors';
 import { pageKeyCandidates } from '../telegram/peer-key';
@@ -14,21 +11,8 @@ export interface BadgeInfo {
   /** shown in the tooltip after the state text, e.g. the ticket id/number */
   label: string;
 }
-/** Decides which dot (if any) a chat list row gets. Pure and swappable: mock data or the ticket server. */
+/** Decides which dot (if any) a chat list row gets. Pure and swappable (unit-tested). */
 export type BadgeLookup = (peerId: string | null, title: string) => BadgeInfo | null;
-
-/** Mock mode: tickets and clients from chrome.storage. */
-export function mockLookup(mock: MockState): BadgeLookup {
-  return (peerId, title) => {
-    const found = findClientForChat(mock.clients, { chatId: peerId, title });
-    const t = found ? currentTicket(mock.tickets, found.client.id) : null;
-    if (!t || t.status === 'CLOSED') return null;
-    return {
-      state: isOverdue(t) ? 'overdue' : t.status === 'WAITING_CLIENT' ? 'waiting' : t.status === 'NEW' ? 'new' : 'open',
-      label: t.id,
-    };
-  };
-}
 
 /** One row of GET /tickets/open-chats. */
 export interface OpenChat {

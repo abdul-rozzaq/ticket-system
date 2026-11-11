@@ -107,7 +107,7 @@ function App() {
       {app && !app.settings.flags.F15 && <div class="tp-warnbox">F15 (yon panel) sozlamalarda o'chirilgan.</div>}
       {chat === null && <div class="tp-warnbox">Telegram Web (/k/ yoki /a/) yorlig'ini faol qiling. Kengaytma o'rnatilgandan keyin yorliqni yangilash kerak.</div>}
       <Panel bridge={remoteBridge} />
-      {palette && app && <Palette bridge={remoteBridge} app={app} chat={chat} onClose={() => setPalette(false)} />}
+      {palette && app && <Palette bridge={remoteBridge} chat={chat} onClose={() => setPalette(false)} />}
       <div class="tp-toasts" style={{ bottom: '20px' }}>
         {toasts.map((t) => <div class={`tp-toast ${t.kind}`}>{t.text}</div>)}
       </div>

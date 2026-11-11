@@ -2,11 +2,17 @@
 import { useState } from 'preact/hooks';
 import { api } from '../../shared/messages';
 import { usePanel } from '../context';
-import { toast } from '../hooks';
+import { toast, useBus, useIntentReplay } from '../hooks';
 import { useApi, useChatTicket, useTicketDetail } from '../server';
-import { SlaTimer } from './TicketTab';
-import { STATUS_LABEL } from '../../logic/tickets';
-import { SYSTEM_LABEL, type SrvTicket } from '../../server/types';
+import { slaInfo, type SlaTicket } from '../../logic/sla';
+import { useNow } from '../hooks';
+import { STATUS_LABEL, SYSTEM_LABEL, type SrvTicket } from '../../server/types';
+
+export function SlaTimer({ t }: { t: SlaTicket }) {
+  const now = useNow(1000);
+  const s = slaInfo(t, now);
+  return <span class={`tp-sla ${s.overdue ? 'overdue' : ''} ${s.paused ? 'paused' : ''}`}>⏱ {s.label}</span>;
+}
 
 const fmtTime = (iso: string) => new Date(iso).toLocaleString('uz-UZ', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
 const sysClass = (s: string) => (s === 'AMOCRM' ? 'amo' : s === 'BITRIX24' ? 'bitrix' : 'pbx');
@@ -23,6 +29,12 @@ export function ServerTicketTab() {
   const [solution, setSolution] = useState('');
   const [noteText, setNoteText] = useState('');
   const [busy, setBusy] = useState(false);
+
+  // "Izoh" in the message hover menu pre-fills the note box with the quoted message
+  useBus((e) => {
+    if (e.type === 'note') setNoteText(e.text);
+  });
+  useIntentReplay('note', 'ticket-note', (e) => e.type === 'note' && setNoteText(e.text));
 
   const refresh = () => {
     byChat.reload();

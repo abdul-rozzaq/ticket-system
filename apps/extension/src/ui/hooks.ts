@@ -1,26 +1,22 @@
 import { useEffect, useState } from 'preact/hooks';
-import { getDiag, getMock, getSettings, KEYS, onStorageChange } from '../shared/storage';
-import type { DiagState, MockState, Settings } from '../shared/types';
+import { getDiag, getSettings, KEYS, onStorageChange } from '../shared/storage';
+import type { DiagState, Settings } from '../shared/types';
 
 export interface AppState {
   settings: Settings;
-  mock: MockState;
   diag: DiagState;
 }
 
-/** Live view of chrome.storage.local (settings + mock + diag). */
+/** Live view of chrome.storage.local (settings + diag). */
 export function useAppState(): AppState | null {
   const [state, setState] = useState<AppState | null>(null);
   useEffect(() => {
     let alive = true;
-    Promise.all([getSettings(), getMock(), getDiag()]).then(([settings, mock, diag]) => alive && setState({ settings, mock, diag }));
+    Promise.all([getSettings(), getDiag()]).then(([settings, diag]) => alive && setState({ settings, diag }));
     const off = onStorageChange(async (key) => {
       if (key === KEYS.settings) {
         const settings = await getSettings();
         if (alive) setState((s) => (s ? { ...s, settings } : s));
-      } else if (key === KEYS.mock) {
-        const mock = await getMock();
-        if (alive) setState((s) => (s ? { ...s, mock } : s));
       } else if (key === KEYS.diag) {
         const diag = await getDiag();
         if (alive) setState((s) => (s ? { ...s, diag } : s));

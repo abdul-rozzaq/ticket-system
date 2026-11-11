@@ -1,15 +1,12 @@
 // The panel content, shared by the injected dock (F2) and the Chrome side panel (F15).
+// Everything comes from the ticket server; without a login the panel only offers the login shortcut and diagnostics.
 import { useEffect, useState } from 'preact/hooks';
 import type { Bridge } from './bridge';
-import { Ctx, resolveCurrent } from './context';
+import { Ctx } from './context';
 import { bus, useAppState, useBus, useIntentReplay } from './hooks';
 import type { ChatInfo } from '../shared/types';
 import { patchSettings } from '../shared/storage';
-import { TicketTab } from './tabs/TicketTab';
-import { TemplatesTab } from './tabs/TemplatesTab';
-import { AiTab } from './tabs/AiTab';
-import { RemindersTab } from './tabs/RemindersTab';
-import { StatsTab } from './tabs/StatsTab';
+import { openOptions } from '../shared/messages';
 import { DiagTab } from './tabs/DiagTab';
 import { ServerTicketTab } from './tabs/ServerTicketTab';
 import { ServerTemplatesTab } from './tabs/ServerTemplatesTab';
@@ -17,17 +14,19 @@ import { ServerAiTab } from './tabs/ServerAiTab';
 import { useChatTicket, useServerStatus } from './server';
 import { useRealtime } from './rt';
 
-const TABS: { id: string; label: string; flag?: string }[] = [
-  { id: 'ticket', label: 'Tiket', flag: 'F3' },
-  { id: 'templates', label: 'Shablonlar', flag: 'F5' },
-  { id: 'ai', label: 'AI', flag: 'F9' },
-  { id: 'reminders', label: 'Eslatma', flag: 'F14' },
-  { id: 'stats', label: 'Statistika', flag: 'F17' },
+const TABS: { id: string; label: string; flag?: string; needsServer?: boolean }[] = [
+  { id: 'ticket', label: 'Tiket', flag: 'F3', needsServer: true },
+  { id: 'templates', label: 'Shablonlar', flag: 'F5', needsServer: true },
+  { id: 'ai', label: 'AI', flag: 'F9', needsServer: true },
   { id: 'diag', label: 'Diagnostika' },
 ];
 
 const KIND_LABEL: Record<string, string> = {
-  private: 'shaxsiy', group: 'guruh', channel: 'kanal', 'forum-topic': 'forum mavzusi', unknown: "noma'lum",
+  private: 'shaxsiy',
+  group: 'guruh',
+  channel: 'kanal',
+  'forum-topic': 'forum mavzusi',
+  unknown: "noma'lum",
 };
 
 export function Panel({ bridge }: { bridge: Bridge }) {
@@ -54,25 +53,23 @@ export function Panel({ bridge }: { bridge: Bridge }) {
   useIntentReplay('ai', 'panel-ai', () => setTab('ai'));
   useIntentReplay('tab', 'panel-tab', (e) => e.type === 'tab' && setTab(e.tab));
 
-  const serverState = useServerStatus();
-  const srvChat = useChatTicket(serverState?.connected ? (chat?.chatId ?? null) : null);
+  const server = useServerStatus();
+  const connected = !!server?.connected;
+  const srvChat = useChatTicket(connected ? (chat?.chatId ?? null) : null);
 
-  if (!app || !serverState) return <div class="tp-body tp-muted">Yuklanmoqda…</div>;
+  if (!app || !server) return <div class="tp-body tp-muted">Yuklanmoqda…</div>;
   const flags = app.settings.flags;
-  const serverMode = serverState.connected;
-  // Server mode shows live data; the local-only Stats tab (mock numbers) is hidden there.
-  const visible = TABS.filter((t) => (!t.flag || flags[t.flag]) && !(serverMode && t.id === 'stats'));
+  const visible = TABS.filter((t) => (!t.flag || flags[t.flag]) && (connected || !t.needsServer));
   const active = visible.find((t) => t.id === (tab ?? app.settings.dock.tab)) ?? visible[0];
   const choose = (id: string) => {
     setTab(id);
     if (bridge.mode === 'dock') patchSettings({ dock: { ...app.settings.dock, tab: id } });
   };
-  const { client, by } = resolveCurrent(app, chat);
   const zoom = Math.min(200, Math.max(50, app.settings.uiZoom ?? 100));
   const setZoom = (z: number) => patchSettings({ uiZoom: Math.min(200, Math.max(50, Math.round(z / 5) * 5)) });
 
   return (
-    <Ctx.Provider value={{ bridge, app, chat, server: serverState }}>
+    <Ctx.Provider value={{ bridge, app, chat, server }}>
       <div class="tp-panel" style={{ zoom: String(zoom / 100) }}>
         {flags.F1 && (
           <div class="tp-chatline">
@@ -80,13 +77,15 @@ export function Panel({ bridge }: { bridge: Bridge }) {
               <>
                 <b>{chat.title ?? '(nom topilmadi)'}</b> · {KIND_LABEL[chat.kind]} · <span class="tp-mono">{chat.chatId ?? '?'}</span>
                 {chat.topicId && <> · mavzu {chat.topicId}</>}
-                {serverMode ? (
-                  srvChat.data ? <> · ✓ {srvChat.data.group.companyName}</> : <> · <i>mijoz guruhi emas</i></>
-                ) : client ? (
-                  <> · ✓ {client.companyName} <span class="tp-small">({by === 'id' ? 'ID' : 'nom'} bo'yicha)</span></>
-                ) : (
-                  <> · <i>mijozga bog'lanmagan</i></>
-                )}
+                {connected &&
+                  (srvChat.data ? (
+                    <> · ✓ {srvChat.data.group.companyName}</>
+                  ) : (
+                    <>
+                      {' '}
+                      · <i>mijoz guruhi emas</i>
+                    </>
+                  ))}
               </>
             ) : (
               <i>Chat ochilmagan</i>
@@ -105,23 +104,25 @@ export function Panel({ bridge }: { bridge: Bridge }) {
               {t.label}
             </button>
           ))}
-          {flags.F12 && (
+          {connected && flags.F12 && (
             <button class="tp-tab" title="Buyruqlar palitrasi (Ctrl+K / Alt+K)" onClick={() => bus.emit({ type: 'palette' })}>
               ⌘
             </button>
           )}
         </div>
         <div class="tp-body">
-          {!serverMode && (
-            <div class="tp-small tp-muted tp-section">
-              Mock rejim: serverga ulanmagan. Haqiqiy tiketlar uchun Sozlamalarda serverga kiring.
+          {!connected && (
+            <div class="tp-card tp-section">
+              <b>Serverga kirilmagan</b>
+              <div class="tp-small tp-muted" style={{ margin: '4px 0 8px' }}>
+                Tiketlar, shablonlar va AI qoralamalar tiket serveridan olinadi. Sozlamalarda login qiling.
+              </div>
+              <button class="tp-btn small primary" onClick={() => void openOptions()}>Sozlamalarni ochish</button>
             </div>
           )}
-          {active.id === 'ticket' && (serverMode ? <ServerTicketTab /> : <TicketTab />)}
-          {active.id === 'templates' && (serverMode ? <ServerTemplatesTab /> : <TemplatesTab />)}
-          {active.id === 'ai' && (serverMode ? <ServerAiTab /> : <AiTab />)}
-          {active.id === 'reminders' && <RemindersTab />}
-          {active.id === 'stats' && <StatsTab />}
+          {connected && active.id === 'ticket' && <ServerTicketTab />}
+          {connected && active.id === 'templates' && <ServerTemplatesTab />}
+          {connected && active.id === 'ai' && <ServerAiTab />}
           {active.id === 'diag' && <DiagTab />}
         </div>
       </div>

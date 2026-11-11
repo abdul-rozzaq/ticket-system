@@ -63,7 +63,7 @@ pnpm --filter @tp/shared build
 pnpm --filter @tp/extension build   # load apps/extension/dist as an unpacked extension
 ```
 
-Options -> "Tiket serveri": API URL + login. Without a login the extension runs in the old mock mode. See MANUAL_TESTS.md §11.
+Options -> "Tiket serveri": API URL + login. Without a login the panel is empty (there is no local/mock data any more). See MANUAL_TESTS.md §11.
 
 ### Admin panel
 
@@ -78,17 +78,16 @@ cookies and `internal/*` API routes are not reachable through the panel. Docker:
 
 ## Environment variables (API)
 
-| Variable                                                  | Meaning                                                                                                                                   |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                                            | PostgreSQL connection string (pgvector extension required)                                                                                |
-| `JWT_SECRET`                                              | ≥ 32 chars, signs access tokens                                                                                                           |
-| `ENCRYPTION_KEY`                                          | 32 bytes base64, AES-256-GCM key for secrets at rest                                                                                      |
-| `SEED_ADMIN_USERNAME` / `SEED_ADMIN_PASSWORD`             | first admin, created when the user table is empty                                                                                         |
-| `ACCESS_TTL_SECONDS` (900), `REFRESH_TTL_DAYS` (30)       | token lifetimes                                                                                                                           |
-| `LOCKOUT_MAX_FAILURES` (5), `LOCKOUT_WINDOW_MINUTES` (15) | login lockout                                                                                                                             |
-| `CORS_ORIGINS`                                            | `*` or a comma-separated list                                                                                                             |
-| `SERVICE_TOKEN`                                           | reserved for userbot/bot → API calls                                                                                                      |
-| `DEMO_MODE` / `DEMO_PASSWORD`                             | `true` + a 10+ char password creates fictional demo data in an EMPTY system (users `demo.ali`, `demo.vali`); never on a real installation |
+| Variable                                                  | Meaning                                                    |
+| --------------------------------------------------------- | ---------------------------------------------------------- |
+| `DATABASE_URL`                                            | PostgreSQL connection string (pgvector extension required) |
+| `JWT_SECRET`                                              | ≥ 32 chars, signs access tokens                            |
+| `ENCRYPTION_KEY`                                          | 32 bytes base64, AES-256-GCM key for secrets at rest       |
+| `SEED_ADMIN_USERNAME` / `SEED_ADMIN_PASSWORD`             | first admin, created when the user table is empty          |
+| `ACCESS_TTL_SECONDS` (900), `REFRESH_TTL_DAYS` (30)       | token lifetimes                                            |
+| `LOCKOUT_MAX_FAILURES` (5), `LOCKOUT_WINDOW_MINUTES` (15) | login lockout                                              |
+| `CORS_ORIGINS`                                            | `*` or a comma-separated list                              |
+| `SERVICE_TOKEN`                                           | reserved for userbot/bot → API calls                       |
 
 ## Docker
 
@@ -115,8 +114,8 @@ or on the terminal:
 API_URL=http://localhost:3000 SERVICE_TOKEN=... TG_API_ID=... TG_API_HASH=... pnpm --filter @tp/userbot login
 ```
 
-Run it with `pnpm --filter @tp/userbot dev` (or the `userbot` compose service). `USERBOT_FAKE=true` starts it with an
-in-memory fake Telegram client for smoke tests. **Use a throwaway account first; read the ban-risk note in STATUS.md.**
+Run it with `pnpm --filter @tp/userbot dev` (or the `userbot` compose service).
+**Use a throwaway account first; read the ban-risk note in STATUS.md.**
 
 ## Internal bot
 

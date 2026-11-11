@@ -2,19 +2,10 @@
 import { useMemo, useState } from 'preact/hooks';
 import { api } from '../../shared/messages';
 import { insertWithToast, usePanel } from '../context';
-import { useApi, useChatTicket } from '../server';
+import { toLocalTemplate, useApi, useChatTicket } from '../server';
 import { applyVars, searchTemplates, unresolvedVars } from '../../logic/templates';
 import { SYSTEM_LABEL, type SrvTemplate } from '../../server/types';
 import type { Template } from '../../shared/types';
-
-/** Server template -> the shape the local search/variable helpers understand. */
-export const toLocalTemplate = (t: SrvTemplate, lang: 'uz' | 'ru'): Template => ({
-  id: t.id,
-  category: t.category as Template['category'],
-  title: t.title,
-  body: lang === 'ru' && t.bodyRu ? t.bodyRu : t.bodyUz,
-  keywords: t.keywords,
-});
 
 export function ServerTemplatesTab() {
   const { chat, bridge, server } = usePanel();

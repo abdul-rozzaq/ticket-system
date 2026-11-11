@@ -1,5 +1,8 @@
 // SLA math. Pure functions, unit-tested.
-import type { Ticket } from '../shared/types';
+export interface SlaTicket {
+  status: string;
+  slaDeadline: string | Date;
+}
 
 export interface SlaInfo {
   /** ms left until deadline; negative when overdue. */
@@ -22,7 +25,7 @@ export function formatDuration(ms: number): string {
   return `${sign}${m}:${pad(s)}`;
 }
 
-export function slaInfo(t: Pick<Ticket, 'status' | 'slaDeadline'>, now = Date.now()): SlaInfo {
+export function slaInfo(t: SlaTicket, now = Date.now()): SlaInfo {
   const remainingMs = new Date(t.slaDeadline).getTime() - now;
   const paused = t.status === 'CLOSED' || t.status === 'WAITING_CLIENT';
   const overdue = !paused && remainingMs < 0;
@@ -33,4 +36,4 @@ export function slaInfo(t: Pick<Ticket, 'status' | 'slaDeadline'>, now = Date.no
   return { remainingMs, overdue, paused, label };
 }
 
-export const isOverdue = (t: Pick<Ticket, 'status' | 'slaDeadline'>, now = Date.now()) => slaInfo(t, now).overdue;
+export const isOverdue = (t: SlaTicket, now = Date.now()) => slaInfo(t, now).overdue;

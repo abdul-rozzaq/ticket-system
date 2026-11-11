@@ -1,5 +1,5 @@
 // Runtime message protocol between content script, background, side panel and options.
-import type { ChatInfo, LlmSettings } from './types';
+import type { ChatInfo } from './types';
 import type { ApiResult } from '../server/session';
 
 export type BridgeMethod =
@@ -8,9 +8,7 @@ export type BridgeMethod =
 export type Msg =
   | { type: 'TP_BRIDGE'; method: BridgeMethod; args: unknown[] }
   | { type: 'TP_CHAT'; chat: ChatInfo }
-  | { type: 'TP_LLM'; system: string; user: string }
-  | { type: 'TP_LLM_TEST'; llm: LlmSettings }
-  | { type: 'TP_REMINDER_SYNC' }
+  | { type: 'TP_OPEN_OPTIONS' }
   | { type: 'TP_TOGGLE_DOCK' }
   | { type: 'TP_NAVIGATE'; chatId: string }
   | { type: 'TP_OPEN_SIDEPANEL' }
@@ -27,16 +25,6 @@ export type Msg =
   /** UI event forwarded from the page (hover menu) to the side panel. */
   | { type: 'TP_UI'; event: { type: 'tab'; tab: string } | { type: 'ai'; text: string; messageId: string | null } | { type: 'note'; text: string } };
 
-export interface LlmResponse {
-  ok: boolean;
-  text: string;
-  ms: number;
-  inputTokens: number | null;
-  outputTokens: number | null;
-  model: string;
-  error: string | null;
-}
-
 export function send<T = unknown>(msg: Msg): Promise<T> {
   return chrome.runtime.sendMessage(msg) as Promise<T>;
 }
@@ -50,3 +38,6 @@ export async function api<T = unknown>(path: string, init: { method?: string; bo
     return { ok: false, status: 0, code: 'NO_RESPONSE', error: String(e) };
   }
 }
+
+/** Open the options page (content scripts cannot call chrome.runtime.openOptionsPage themselves). */
+export const openOptions = () => send({ type: 'TP_OPEN_OPTIONS' }).catch(() => undefined);

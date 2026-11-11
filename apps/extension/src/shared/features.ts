@@ -16,17 +16,12 @@ export const FEATURES: FeatureDef[] = [
   { id: 'F6', name: "Yozish maydoniga qo'yish", defaultOn: true, description: "Matnni composerga qo'yish (yuborilmaydi)" },
   { id: 'F7', name: "Xabarlarni o'qish (tajriba)", defaultOn: true, description: "Oxirgi xabarlarni DOM'dan o'qish" },
   { id: 'F8', name: 'Xabar ustida TP tugmasi', defaultOn: true, description: 'Xabar ustiga kursor olib borilganda menyu' },
-  { id: 'F9', name: 'AI javob qoralamasi', defaultOn: true, description: 'Bilim bazasidan javob qoralamasi' },
-  { id: 'F9_LLM', name: 'Haqiqiy LLM (F9)', defaultOn: false, description: "Tashqi LLM API'ga so'rov (kalit kerak)" },
+  { id: 'F9', name: 'AI javob qoralamasi', defaultOn: true, description: 'Server bilim bazasidan javob qoralamasi tayyorlaydi' },
   { id: 'F10', name: 'Tavsiya chiplari', defaultOn: true, description: "Composer ustida mos shablon/maqola chiplari" },
   { id: 'F11', name: "Chatlar ro'yxatida belgilar", defaultOn: true, description: "Chatlar ro'yxatida status nuqtalari" },
   { id: 'F12', name: 'Buyruqlar palitrasi', defaultOn: true, description: 'Ctrl+K / Alt+K bilan qidiruv' },
-  { id: 'F13', name: 'Maxfiy maʼlumotlarni yashirish', defaultOn: true, description: "AI'ga ketishdan oldin parol/token/kartani yashirish" },
-  { id: 'F14', name: 'Eslatmalar', defaultOn: true, description: 'Eslatma, bildirishnoma, ikonka badge' },
+  { id: 'F14', name: 'Bildirishnomalar va badge', defaultOn: true, description: "Biriktirish/SLA bildirishnomasi, ikonka badge" },
   { id: 'F15', name: 'Yon panel (side panel)', defaultOn: true, description: 'Chrome yon panelida bir xil kontent' },
-  { id: 'F16', name: 'Ichki izohlar va teglar', defaultOn: true, description: 'Chat uchun shaxsiy izoh va teglar' },
-  { id: 'F17', name: 'Mini statistika', defaultOn: true, description: "Mock tiketlar bo'yicha raqamlar" },
-  { id: 'F18', name: 'Eksport / import', defaultOn: true, description: 'Sozlamalar va mock holatni JSON qilib saqlash' },
 ];
 
 export const defaultFlags = (): Record<string, boolean> =>

@@ -4,15 +4,13 @@ import type { Bridge } from './bridge';
 import type { ServerStatus } from '../server/session';
 import type { AppState } from './hooks';
 import { toast } from './hooks';
-import type { ChatInfo, Client, Ticket } from '../shared/types';
-import { currentTicket, findClientForChat } from '../logic/tickets';
-import type { TemplateVars } from '../logic/templates';
+import type { ChatInfo } from '../shared/types';
 
 export interface PanelCtx {
   bridge: Bridge;
   app: AppState;
   chat: ChatInfo | null;
-  /** Ticket-server connection. When `connected`, tabs show server data instead of the local mock. */
+  /** Ticket-server connection (the panel is only shown to a logged-in user). */
   server: ServerStatus;
 }
 
@@ -22,21 +20,6 @@ export function usePanel(): PanelCtx {
   if (!c) throw new Error('PanelCtx missing');
   return c;
 }
-
-export function resolveCurrent(app: AppState, chat: ChatInfo | null): { client: Client | null; by: 'id' | 'title' | null; ticket: Ticket | null } {
-  if (!chat) return { client: null, by: null, ticket: null };
-  const f = findClientForChat(app.mock.clients, chat);
-  if (!f) return { client: null, by: null, ticket: null };
-  return { client: f.client, by: f.by, ticket: currentTicket(app.mock.tickets, f.client.id) };
-}
-
-export function templateVars(app: AppState, client: Client | null): TemplateVars {
-  const me = app.mock.staff.find((s) => s.id === app.settings.me);
-  return { mijoz_nomi: client?.contactName ?? null, tizim: client?.system ?? null, xodim: me?.name ?? null };
-}
-
-export const staffName = (app: AppState, id: string | null) =>
-  id == null ? '—' : id === 'client' ? 'Mijoz' : id === 'system' ? 'Tizim' : app.mock.staff.find((s) => s.id === id)?.name ?? id;
 
 /** Insert with user-facing feedback. Returns true if the text is in the composer (or clipboard). */
 export async function insertWithToast(bridge: Bridge, text: string, replace = false): Promise<boolean> {

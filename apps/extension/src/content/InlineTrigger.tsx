@@ -1,12 +1,10 @@
 // F5 inline trigger: typing ";query" in the composer opens a template autocomplete.
 // Arrow keys + Enter/Tab pick, Esc closes. Enter is swallowed (capture phase) so Telegram does not send.
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { AppState } from '../ui/hooks';
-
 import type { ChatInfo, Template } from '../shared/types';
 import { applyVars, searchTemplates } from '../logic/templates';
-import { resolveCurrent, templateVars, insertWithToast } from '../ui/context';
-import { bumpUsage } from '../ui/tabs/TemplatesTab';
+import { insertWithToast } from '../ui/context';
+import { bumpTemplateUsage, useTemplateData } from '../ui/server';
 import { findComposer, isInComposer, composerText } from '../telegram/composer';
 import { q, warn } from '../telegram/dom';
 import { localBridge } from './localBridge';
@@ -27,18 +25,17 @@ function textBeforeCaret(): string | null {
   return prev?.textContent ?? '';
 }
 
-export function InlineTrigger({ app, chat }: { app: AppState; chat: ChatInfo | null }) {
+export function InlineTrigger({ chat }: { chat: ChatInfo | null }) {
+  const { templates, usage, vars } = useTemplateData(chat?.chatId ?? null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [sel, setSel] = useState(0);
   const [pos, setPos] = useState({ left: 0, bottom: 0 });
   const state = useRef({ open, list: [] as Template[], sel, query });
 
-  const list = open ? searchTemplates(app.mock.templates, query, { favourites: app.mock.favourites, usage: app.mock.usage }).slice(0, 8) : [];
+  const list = open ? searchTemplates(templates, query, { usage }).slice(0, 8) : [];
   state.current = { open, list, sel, query };
 
-  const { client } = resolveCurrent(app, chat);
-  const vars = templateVars(app, client);
   const varsRef = useRef(vars);
   varsRef.current = vars;
 
@@ -56,7 +53,7 @@ export function InlineTrigger({ app, chat }: { app: AppState; chat: ChatInfo | n
       const after = composer ? composerText(composer) : '';
       if (ok && after !== before && after.includes(body.slice(0, 20))) {
         setHealth('F5', 'OK', ";-trigger: execCommand o'rnini almashtirdi");
-        bumpUsage(t.id);
+        bumpTemplateUsage(t.id);
         return;
       }
       // Fallback: remove the trigger text, then use the generic insertion pipeline.
@@ -65,7 +62,7 @@ export function InlineTrigger({ app, chat }: { app: AppState; chat: ChatInfo | n
     } catch (e) {
       warn('inline pick failed', e);
     }
-    if (await insertWithToast(localBridge, body)) bumpUsage(t.id);
+    if (await insertWithToast(localBridge, body)) bumpTemplateUsage(t.id);
   };
   const pickRef = useRef(pick);
   pickRef.current = pick;

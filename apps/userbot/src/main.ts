@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { ApiClient } from './api-client';
-import { FakeTelegramClient } from './fake-client';
 import { GramjsClient } from './gramjs-client';
 import type { Logger } from './ports';
 import { UserbotWorker } from './worker';
@@ -11,8 +10,6 @@ const env = z
     SERVICE_TOKEN: z.string().min(16),
     TG_API_ID: z.coerce.number().int().positive().optional(),
     TG_API_HASH: z.string().min(8).optional(),
-    /** Run with an in-memory fake instead of MTProto (demo / smoke tests). */
-    USERBOT_FAKE: z.enum(['true', 'false']).default('false'),
   })
   // docker compose passes unset optional variables as empty strings: treat them as not set
   .parse(Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== '')));
@@ -26,15 +23,9 @@ const logger: Logger = {
 
 async function main() {
   const api = new ApiClient({ baseUrl: env.API_URL, serviceToken: env.SERVICE_TOKEN, logger });
-  let client;
-  if (env.USERBOT_FAKE === 'true') {
-    client = new FakeTelegramClient();
-    logger.warn('running with the FAKE Telegram client: nothing real is connected');
-  } else {
-    if (!env.TG_API_ID || !env.TG_API_HASH)
-      throw new Error('TG_API_ID and TG_API_HASH are required (https://my.telegram.org)');
-    client = new GramjsClient({ apiId: env.TG_API_ID, apiHash: env.TG_API_HASH, logger });
-  }
+  if (!env.TG_API_ID || !env.TG_API_HASH)
+    throw new Error('TG_API_ID and TG_API_HASH are required (https://my.telegram.org)');
+  const client = new GramjsClient({ apiId: env.TG_API_ID, apiHash: env.TG_API_HASH, logger });
   const worker = new UserbotWorker({ client, api, logger });
   const shutdown = async (sig: string) => {
     logger.info('shutting down', { sig });

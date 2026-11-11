@@ -68,3 +68,10 @@ export const SYSTEM_LABEL: Record<SrvGroup['systemType'], string> = {
   PBX: 'Online PBX',
   OTHER: 'Boshqa',
 };
+
+export const STATUS_LABEL: Record<SrvStatus, string> = {
+  NEW: 'Yangi',
+  IN_PROGRESS: 'Jarayonda',
+  WAITING_CLIENT: 'Mijoz kutilmoqda',
+  CLOSED: 'Yopilgan',
+};

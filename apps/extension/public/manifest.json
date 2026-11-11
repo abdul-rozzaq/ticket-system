@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "TP Assistant",
   "version": "0.1.0",
-  "description": "Texnik yordam jamoasi uchun Telegram Web yordamchisi (prototip, mock ma'lumotlar).",
+  "description": "Texnik yordam jamoasi uchun Telegram Web yordamchisi (tiket serveriga ulanadi).",
   "minimum_chrome_version": "116",
   "permissions": ["storage", "alarms", "notifications", "sidePanel", "clipboardWrite"],
   "host_permissions": ["https://web.telegram.org/*"],

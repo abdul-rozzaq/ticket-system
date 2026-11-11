@@ -172,7 +172,7 @@ describe('small helpers', () => {
   });
 
   it('toLocalTemplate picks the Russian body only for Russian groups that have one', async () => {
-    const { toLocalTemplate } = await import('../src/ui/tabs/ServerTemplatesTab');
+    const { toLocalTemplate } = await import('../src/ui/server');
     const t = { id: '1', category: 'x', title: 'T', bodyUz: 'uz', bodyRu: 'ru', keywords: [], usageCount: 0 };
     expect(toLocalTemplate(t, 'uz').body).toBe('uz');
     expect(toLocalTemplate(t, 'ru').body).toBe('ru');

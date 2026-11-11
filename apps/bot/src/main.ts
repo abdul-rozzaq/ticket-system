@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { ApiClient } from './api-client';
-import { FakeGateway } from './fake-gateway';
 import { GrammyGateway } from './grammy-gateway';
 import type { BotGateway, Logger } from './ports';
 import { BotWorker } from './worker';
@@ -14,8 +13,6 @@ const env = z
     BOT_WEBHOOK_URL: z.string().url().optional(),
     BOT_WEBHOOK_SECRET: z.string().min(16).optional(),
     BOT_WEBHOOK_PORT: z.coerce.number().int().default(8443),
-    /** In-memory fake instead of Telegram (smoke tests). */
-    BOT_FAKE: z.enum(['true', 'false']).default('false'),
   })
   // docker compose passes unset optional variables as empty strings: treat them as not set
   .parse(Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== '')));
@@ -29,10 +26,7 @@ const logger: Logger = {
 async function main() {
   const api = new ApiClient({ baseUrl: env.API_URL, serviceToken: env.SERVICE_TOKEN, logger });
   let gateway: BotGateway;
-  if (env.BOT_FAKE === 'true') {
-    gateway = new FakeGateway();
-    logger.warn('running with the FAKE Telegram gateway: nothing real is connected');
-  } else if (env.BOT_MODE === 'webhook') {
+  if (env.BOT_MODE === 'webhook') {
     if (!env.BOT_WEBHOOK_URL || !env.BOT_WEBHOOK_SECRET)
       throw new Error('webhook mode needs BOT_WEBHOOK_URL and BOT_WEBHOOK_SECRET');
     gateway = new GrammyGateway({
@@ -52,7 +46,7 @@ async function main() {
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
   process.on('SIGINT', () => void shutdown('SIGINT'));
   process.on('unhandledRejection', (e) => logger.error('unhandled rejection', { err: (e as Error)?.name }));
-  logger.info('bot starting', { mode: env.BOT_FAKE === 'true' ? 'fake' : env.BOT_MODE });
+  logger.info('bot starting', { mode: env.BOT_MODE });
   await worker.run();
 }
 

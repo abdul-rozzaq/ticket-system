@@ -56,7 +56,7 @@ export function ServerSection() {
             ✅ Ulangan: <b>{st.user.displayName}</b> ({st.user.role === 'ADMIN' ? 'admin' : 'xodim'}) · <span class="tp-mono">{st.baseUrl}</span>
           </div>
           <div class="tp-small tp-muted">
-            Panel haqiqiy tiketlar, shablonlar va AI qoralamalarni serverdan oladi. AI kalitlari faqat serverda saqlanadi; quyidagi mahalliy LLM sozlamasi serverga ulanganda ishlatilmaydi.
+            Panel haqiqiy tiketlar, shablonlar va AI qoralamalarni serverdan oladi. AI kalitlari faqat serverda saqlanadi.
           </div>
           <div>
             <button class="tp-btn small" onClick={() => send({ type: 'TP_SRV_LOGOUT' })}>Chiqish</button>
@@ -64,7 +64,7 @@ export function ServerSection() {
         </div>
       ) : (
         <form class="tp-col" onSubmit={login}>
-          <div class="tp-small tp-muted">Ulanmagan: panel mock (sinov) ma'lumotlar bilan ishlaydi. Login admin panelda yaratiladi; birinchi kirishdan oldin parolni admin panelda o'zgartiring.</div>
+          <div class="tp-small tp-muted">Ulanmagan: panel ishlamaydi. Login admin panelda yaratiladi; birinchi kirishdan oldin parolni admin panelda o'zgartiring.</div>
           <label>Server manzili <input class="tp-mono" value={url} onInput={(e) => setUrl((e.target as HTMLInputElement).value)} required /></label>
           <label>Login <input value={username} autoComplete="username" onInput={(e) => setUsername((e.target as HTMLInputElement).value)} required /></label>
           <label>Parol <input type="password" value={password} autoComplete="current-password" onInput={(e) => setPassword((e.target as HTMLInputElement).value)} required /></label>

@@ -18,3 +18,14 @@ export function pageKeyCandidates(id: string | null | undefined): string[] {
   }
   return [`x:${digits}`, `c:${digits}`, `g:${digits}`];
 }
+
+/** Canonical server key -> the id Telegram Web puts in the URL hash ("c:123" -> "-100123", "g:45" -> "-45"). */
+export function keyToWebId(key: string): string | null {
+  const m = /^([cgxun]):(.+)$/.exec(key);
+  if (!m) return null;
+  const [, kind, id] = m;
+  if (kind === 'c') return `-100${id}`;
+  if (kind === 'g' || kind === 'x') return `-${id}`;
+  if (kind === 'u') return id;
+  return `@${id}`;
+}

@@ -93,3 +93,45 @@ export const useChatTicket = (chatId: string | null) =>
 
 export const useTicketDetail = (ticketId: string | null) =>
   useApi<SrvTicketDetail>(ticketId ? `tickets/${ticketId}` : null, 20_000);
+
+// ---------------------------------------------------------------- shared data helpers (panel, palette, chips, ;-trigger)
+import { SYSTEM_LABEL, type SrvTemplate } from '../server/types';
+import type { Template } from '../shared/types';
+import type { TemplateVars } from '../logic/templates';
+
+/** Server template -> the shape the search/variable helpers understand. */
+export const toLocalTemplate = (t: SrvTemplate, lang: 'uz' | 'ru'): Template => ({
+  id: t.id,
+  category: t.category,
+  title: t.title,
+  body: lang === 'ru' && t.bodyRu ? t.bodyRu : t.bodyUz,
+  keywords: t.keywords,
+});
+
+/** Templates managed in the admin panel, plus the variables for the open chat ({mijoz_nomi} {tizim} {xodim}). */
+export function useTemplateData(chatId: string | null, enabled = true) {
+  const status = useServerStatus();
+  const connected = enabled && !!status?.connected;
+  const list = useApi<SrvTemplate[]>(connected ? 'templates' : null);
+  const byChat = useChatTicket(connected ? chatId : null);
+  const group = byChat.data?.group ?? null;
+  const lang = group?.language ?? 'uz';
+  const templates = (list.data ?? []).map((t) => toLocalTemplate(t, lang));
+  const usage: Record<string, number> = Object.fromEntries((list.data ?? []).map((t) => [t.id, t.usageCount]));
+  const vars: TemplateVars = {
+    mijoz_nomi: group?.companyName ?? null,
+    tizim: group ? SYSTEM_LABEL[group.systemType] : null,
+    xodim: status?.user?.displayName ?? null,
+  };
+  return { connected, templates, usage, vars, group, ticket: byChat.data?.current ?? null };
+}
+
+/** Counts a template use on the server (best effort). */
+export const bumpTemplateUsage = (id: string) => void api(`templates/${id}/use`, { method: 'POST', body: {} });
+
+/** Ticket actions shared by the ticket tab and the command palette. */
+export async function ticketAction(action: 'take' | 'wait' | 'solve', ticketId: string, note = '') {
+  if (action === 'take') return api(`tickets/${ticketId}/take`, { method: 'POST', body: {} });
+  if (action === 'wait') return api(`tickets/${ticketId}/status`, { method: 'POST', body: { status: 'WAITING_CLIENT' } });
+  return api(`tickets/${ticketId}/close`, { method: 'POST', body: { solutionNote: note.trim() || undefined } });
+}

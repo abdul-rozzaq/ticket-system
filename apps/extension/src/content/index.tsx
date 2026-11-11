@@ -15,7 +15,7 @@ import { installActivityPing } from './activity';
 import { InlineTrigger } from './InlineTrigger';
 import { Chips } from './Chips';
 import { MessageHover } from './MessageHover';
-import { Badges, mockLookup, serverLookup, type OpenChat } from './badges';
+import { Badges, serverLookup, type OpenChat } from './badges';
 import { useServerStatus } from '../ui/server';
 import { isTicketEvent, onRealtime } from '../ui/rt';
 import { watchTheme } from './theme';
@@ -110,10 +110,10 @@ function Root({ host }: { host: HTMLElement }) {
       {(dockEnabled && !dockVisible) || sidepanelMode ? (
         <button class="tp-launcher" title={sidepanelMode ? 'Yon panelni ochish (Alt+T)' : 'TP panel (Alt+T)'} onClick={showSurface}>TP</button>
       ) : null}
-      {f.F5 && <InlineTrigger app={app} chat={chat} />}
-      {f.F10 && <Chips app={app} chat={chat} />}
+      {f.F5 && <InlineTrigger chat={chat} />}
+      {f.F10 && <Chips chat={chat} />}
       {f.F8 && <MessageHover host={host} onAction={() => !sidepanelMode && setDockVisible(true)} />}
-      {palette && f.F12 && <Palette bridge={localBridge} app={app} chat={chat} onClose={() => setPalette(false)} />}
+      {palette && f.F12 && <Palette bridge={localBridge} chat={chat} onClose={() => setPalette(false)} />}
       <div class="tp-toasts">
         {toasts.map((t) => (
           <div class={`tp-toast ${t.kind}`}>{t.text}</div>
@@ -156,11 +156,8 @@ function useBadges(app: AppState | null) {
     };
   }, [connected]);
 
-  const lookup = useMemo(
-    () => (connected ? serverLookup(rows) : app ? mockLookup(app.mock) : null),
-    [connected, rows, app?.mock],
-  );
-  const on = !!app?.settings.flags.F11 && !!lookup && server !== null;
+  const lookup = useMemo(() => (connected ? serverLookup(rows) : null), [connected, rows]);
+  const on = !!app?.settings.flags.F11 && !!lookup;
   useEffect(() => {
     if (on && lookup) badges.start(lookup);
     else badges.stop();

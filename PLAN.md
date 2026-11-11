@@ -25,7 +25,6 @@ This file is the single source of truth for decisions. `STATUS.md` records what 
 | Overdue stage             | Virtual: computed from `slaDeadline` and status, never stored.                                                                                                                                                                           |
 | AI                        | `AiService` with provider adapters (Anthropic via `@anthropic-ai/sdk`, OpenAI-compatible via `fetch`); zod-validated structured outputs; fail-open classification.                                                                       |
 | Embeddings                | Configurable model; pgvector column on `KbChunk`. If no embedding model is configured → Postgres full-text search (`simple` dictionary + trigram-free ILIKE fallback).                                                                   |
-| Demo mode                 | `DEMO_MODE=true` seeds fake groups/tickets/users and swaps real Telegram adapters for fakes.                                                                                                                                             |
 | Extension location of AI  | Extension has no AI settings at all; it calls `POST /ai/draft`.                                                                                                                                                                          |
 
 ## 2. Architecture
@@ -93,7 +92,7 @@ The authoritative schema is `apps/api/prisma/schema.prisma`.
 | P5    | funnel, Kanban, folder reconcile + limits + dry run                                                                               | unit: desired-state diff with fake Telegram; limits degradation                            |
 | P6    | AI settings/usage, KB, embeddings/RAG, drafts, KB growth                                                                          | unit: provider adapters with fake HTTP, grounding/not_found; e2e draft                     |
 | P7    | extension on real data (login, WS, features), send-activity ping, badges                                                          | build + unit (id normalisation); DOM parts MANUAL                                          |
-| P8    | stats, extras, hardening, docs, demo seed                                                                                         | docs complete; `docker compose up` with demo seed — MANUAL                                 |
+| P8    | stats, extras, hardening, docs                                                                                                    | docs complete; `docker compose up` with demo seed — MANUAL                                 |
 
 ## 6. Risks (see also the end of STATUS.md)
 
