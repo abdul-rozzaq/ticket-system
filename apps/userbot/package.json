@@ -13,6 +13,7 @@
   "dependencies": {
     "@tp/shared": "workspace:*",
     "big-integer": "^1.6.52",
+    "dotenv": "^18.0.10",
     "telegram": "^2.26.22",
     "zod": "^4.6.7"
   },

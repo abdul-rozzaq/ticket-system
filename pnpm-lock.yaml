@@ -348,6 +348,9 @@ importers:
 
   apps/bot:
     dependencies:
+      dotenv:
+        specifier: ^18.0.10
+        version: 18.0.10
       grammy:
         specifier: ^1.46.0
         version: 1.46.0(supports-color@8.1.1)
@@ -401,6 +404,9 @@ importers:
       big-integer:
         specifier: ^1.6.52
         version: 1.6.52
+      dotenv:
+        specifier: ^18.0.10
+        version: 18.0.10
       telegram:
         specifier: ^2.26.22
         version: 2.26.22(supports-color@8.1.1)

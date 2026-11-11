@@ -68,6 +68,22 @@ pnpm --filter @tp/api dev
 
 Admin panel, extension, userbot and bot: see their guides in this folder.
 
+## Environment files
+
+Each app has an example file; copy it and fill the empty values. The real files are git-ignored.
+
+| Run mode                    | File to create                                         |
+| --------------------------- | ------------------------------------------------------ |
+| Docker compose (everything) | `infra/.env` from `infra/.env.example`                 |
+| API on the host             | `apps/api/.env` from `apps/api/.env.example`           |
+| Userbot on the host         | `apps/userbot/.env` from `apps/userbot/.env.example`   |
+| Bot on the host             | `apps/bot/.env` from `apps/bot/.env.example`           |
+| Admin panel on the host     | `apps/admin/.env.local` from `apps/admin/.env.example` |
+| Extension                   | none (the server URL is entered in the options page)   |
+
+The API, userbot and bot read `.env` from their working directory when started locally (`pnpm --filter <app> dev`); in Docker
+no file exists and the variables come from compose. `SERVICE_TOKEN` must be identical in the API, userbot and bot.
+
 ## Environment variables (API)
 
 | Variable                                                  | Meaning                                                              |

@@ -1,6 +1,10 @@
 // End-to-end smoke test of the bot <-> API contract over REAL HTTP, with a fake Telegram.
 //   API_URL=http://localhost:3100 SERVICE_TOKEN=... ADMIN_USER=admin ADMIN_PASSWORD=... pnpm --filter @tp/bot smoke
 // The API must be running against a fresh database (it creates users, a group and a ticket).
+import { config as loadDotenv } from 'dotenv';
+
+// Local runs: read .env from the working directory (Docker passes real environment variables; no file there = no-op).
+loadDotenv({ quiet: true });
 import { ApiClient } from '../src/api-client';
 import { FakeGateway } from '../src/fake-gateway';
 import { BotWorker } from '../src/worker';

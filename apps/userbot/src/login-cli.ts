@@ -3,6 +3,10 @@
 // Asks for phone, code and (if enabled) the 2FA password on the terminal, then hands the session to the API,
 // which encrypts it. The session string is never printed or written to disk.
 import { createInterface } from 'node:readline/promises';
+import { config as loadDotenv } from 'dotenv';
+
+// Local runs: read .env from the working directory (Docker passes real environment variables; no file there = no-op).
+loadDotenv({ quiet: true });
 import { ApiClient } from './api-client';
 import { GramjsClient } from './gramjs-client';
 import type { Logger } from './ports';

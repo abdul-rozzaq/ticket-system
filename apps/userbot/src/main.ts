@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import { config as loadDotenv } from 'dotenv';
+
+// Local runs: read .env from the working directory (Docker passes real environment variables; no file there = no-op).
+loadDotenv({ quiet: true });
 import { ApiClient } from './api-client';
 import { GramjsClient } from './gramjs-client';
 import type { Logger } from './ports';

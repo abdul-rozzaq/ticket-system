@@ -7,7 +7,7 @@ is deleting the TP account's own command messages (`.done`, `.ai`, ...).
 > **Use a throwaway Telegram account first.** A userbot on the shared TP account can get it limited or banned
 > (see "Open risks" in [../status.md](../status.md)). The GramJS adapter has never run against real Telegram.
 
-1. Create a Telegram app at <https://my.telegram.org> -> API development tools and put `TG_API_ID` / `TG_API_HASH` into `infra/.env`.
+1. Create a Telegram app at <https://my.telegram.org> -> API development tools and put `TG_API_ID` / `TG_API_HASH` into `infra/.env` (Docker) or `apps/userbot/.env` (local, see `apps/userbot/.env.example`).
 2. Start the stack (or `pnpm --filter @tp/userbot dev` next to a running API).
 3. Log in, either in the admin panel (Telegram -> Userbot: phone, code, 2FA password) or on a terminal:
 

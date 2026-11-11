@@ -1,4 +1,8 @@
 import 'reflect-metadata';
+import { config as loadDotenv } from 'dotenv';
+
+// Local runs: read .env from the working directory (Docker passes real environment variables; no file there = no-op).
+loadDotenv({ quiet: true });
 import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
