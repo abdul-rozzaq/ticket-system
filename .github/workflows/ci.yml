@@ -1,21 +1,14 @@
 name: ci
+
 on:
   push:
   pull_request:
 
 jobs:
-  test:
+  # Lint, typecheck and unit tests only. The e2e suite needs PostgreSQL + pgvector and is run locally
+  # (pnpm --filter @tp/api test:e2e), not in CI.
+  check:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: pgvector/pgvector:pg17
-        env: { POSTGRES_USER: tp, POSTGRES_PASSWORD: tp, POSTGRES_DB: tp_test }
-        ports: ['55432:5432']
-        options: >-
-          --health-cmd "pg_isready -U tp" --health-interval 5s --health-timeout 3s --health-retries 20
-    env:
-      TEST_DATABASE_URL: postgresql://tp:tp@localhost:55432/tp_test?schema=public
-      DATABASE_URL: postgresql://tp:tp@localhost:55432/tp_test?schema=public
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -24,26 +17,34 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @tp/shared build
       - run: pnpm --filter @tp/api exec prisma generate
-      - run: pnpm --filter @tp/api exec prisma migrate deploy
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
-      - run: pnpm --filter @tp/api test:e2e
 
+  # Images are built and pushed by the shared workflow in abdul-rozzaq/reusable-workflows.
+  # Needs repository variables DOCKER_REGISTRY_NAME, DOCKER_REGISTRY_USERNAME and secrets DOCKER_REGISTRY_TOKEN,
+  # TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (the Telegram ones are optional).
   images:
-    needs: test
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.REGISTRY_URL }}
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: infra/Dockerfile.api
-          push: true
-          tags: ${{ secrets.REGISTRY_URL }}/tp/api:${{ github.sha }},${{ secrets.REGISTRY_URL }}/tp/api:latest
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { image: tp-api, dockerfile: infra/Dockerfile.api }
+          - { image: tp-userbot, dockerfile: infra/Dockerfile.userbot }
+          - { image: tp-bot, dockerfile: infra/Dockerfile.bot }
+          - { image: tp-admin, dockerfile: infra/Dockerfile.admin }
+    uses: abdul-rozzaq/reusable-workflows/.github/workflows/docker-build-push.yml@main
+    with:
+      registry_name: ${{ vars.DOCKER_REGISTRY_NAME }}
+      registry_username: ${{ vars.DOCKER_REGISTRY_USERNAME }}
+      image_name: ${{ matrix.image }}
+      docker_context: .
+      dockerfile: ${{ matrix.dockerfile }}
+      push_image: true
+      notify_telegram: true
+    secrets:
+      docker_registry_token: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+      telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+      telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
