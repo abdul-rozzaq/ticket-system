@@ -8,16 +8,19 @@ COPY apps/api/package.json apps/api/
 RUN pnpm install --frozen-lockfile --filter @tp/api... --filter @tp/shared...
 COPY packages/shared packages/shared
 COPY apps/api apps/api
+# deploy = production-only tree: no dev dependencies, no sources, @tp/shared copied in
 RUN pnpm --filter @tp/shared build \
  && pnpm --filter @tp/api exec prisma generate \
- && pnpm --filter @tp/api build
+ && pnpm --filter @tp/api build \
+ && pnpm --filter @tp/api deploy --legacy --prod /out \
+ && cd /out && ./node_modules/.bin/prisma generate
 
 FROM node:22-alpine AS run
-RUN corepack enable && apk add --no-cache openssl
-WORKDIR /repo
+RUN apk add --no-cache openssl
+WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=build /repo /repo
-WORKDIR /repo/apps/api
+COPY --from=build /out ./
+USER node
 EXPOSE 3000
 # Apply migrations, then start. Migrations are forward-only and idempotent (prisma migrate deploy).
-CMD ["sh", "-c", "pnpm exec prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/main.js"]

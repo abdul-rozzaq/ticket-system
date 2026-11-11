@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { Prisma, type Ticket, type TicketStatus, type Urgency, type SystemType } from '@prisma/client';
-import { maskSensitive, t, ticketFilterSchema } from '@tp/shared';
+import { maskSensitive, slaInfo, t, ticketFilterSchema } from '@tp/shared';
 import type { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service';
 import { DomainEvents, TicketSnapshot } from '../events/domain-events';
@@ -507,6 +507,33 @@ export class TicketsService {
         senderTelegramId: m.senderTelegramId?.toString() ?? null,
       })),
     };
+  }
+
+  /** One row per open ticket with its chat; ids and statuses only (no message text). */
+  async openChats() {
+    const rows = await this.prisma.ticket.findMany({
+      where: { status: { not: 'CLOSED' } },
+      select: {
+        id: true,
+        number: true,
+        status: true,
+        urgency: true,
+        slaDeadline: true,
+        clientGroup: { select: { telegramChatId: true, title: true, companyName: true } },
+      },
+      orderBy: { openedAt: 'asc' },
+    });
+    return rows.map((t) => ({
+      ticketId: t.id,
+      number: t.number,
+      status: t.status,
+      urgency: t.urgency,
+      slaDeadline: t.slaDeadline,
+      overdue: slaInfo(t, Date.now()).overdue,
+      chatKey: t.clientGroup.telegramChatId,
+      title: t.clientGroup.title,
+      company: t.clientGroup.companyName,
+    }));
   }
 
   /** Current open ticket (and the latest closed one) for a client group: what the extension shows next to a chat. */

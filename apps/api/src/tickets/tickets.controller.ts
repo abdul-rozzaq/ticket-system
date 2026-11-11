@@ -37,6 +37,12 @@ export class TicketsController {
     return this.tickets.list(q);
   }
 
+  /** Open tickets per chat: what the extension paints as status dots in the Telegram chat list. */
+  @Get('open-chats')
+  openChats() {
+    return this.tickets.openChats();
+  }
+
   /** What the extension shows for the chat that is open in Telegram Web (chat id in any Web format). */
   @Get('by-chat/:chatId')
   async byChat(@Param('chatId') chatId: string) {

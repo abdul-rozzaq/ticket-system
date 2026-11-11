@@ -54,6 +54,8 @@ pnpm --filter @tp/api dev
 
 Swagger: `http://localhost:3000/docs`. The seeded admin must change its password at first login.
 
+Architecture overview: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Progress: [docs/PROGRESS.md](docs/PROGRESS.md).
+
 ### Extension
 
 ```bash
@@ -76,17 +78,17 @@ cookies and `internal/*` API routes are not reachable through the panel. Docker:
 
 ## Environment variables (API)
 
-| Variable                                                  | Meaning                                                    |
-| --------------------------------------------------------- | ---------------------------------------------------------- |
-| `DATABASE_URL`                                            | PostgreSQL connection string (pgvector extension required) |
-| `JWT_SECRET`                                              | ≥ 32 chars, signs access tokens                            |
-| `ENCRYPTION_KEY`                                          | 32 bytes base64, AES-256-GCM key for secrets at rest       |
-| `SEED_ADMIN_USERNAME` / `SEED_ADMIN_PASSWORD`             | first admin, created when the user table is empty          |
-| `ACCESS_TTL_SECONDS` (900), `REFRESH_TTL_DAYS` (30)       | token lifetimes                                            |
-| `LOCKOUT_MAX_FAILURES` (5), `LOCKOUT_WINDOW_MINUTES` (15) | login lockout                                              |
-| `CORS_ORIGINS`                                            | `*` or a comma-separated list                              |
-| `SERVICE_TOKEN`                                           | reserved for userbot/bot → API calls                       |
-| `DEMO_MODE`                                               | reserved; demo seed not implemented yet                    |
+| Variable                                                  | Meaning                                                                                                                                   |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                            | PostgreSQL connection string (pgvector extension required)                                                                                |
+| `JWT_SECRET`                                              | ≥ 32 chars, signs access tokens                                                                                                           |
+| `ENCRYPTION_KEY`                                          | 32 bytes base64, AES-256-GCM key for secrets at rest                                                                                      |
+| `SEED_ADMIN_USERNAME` / `SEED_ADMIN_PASSWORD`             | first admin, created when the user table is empty                                                                                         |
+| `ACCESS_TTL_SECONDS` (900), `REFRESH_TTL_DAYS` (30)       | token lifetimes                                                                                                                           |
+| `LOCKOUT_MAX_FAILURES` (5), `LOCKOUT_WINDOW_MINUTES` (15) | login lockout                                                                                                                             |
+| `CORS_ORIGINS`                                            | `*` or a comma-separated list                                                                                                             |
+| `SERVICE_TOKEN`                                           | reserved for userbot/bot → API calls                                                                                                      |
+| `DEMO_MODE` / `DEMO_PASSWORD`                             | `true` + a 10+ char password creates fictional demo data in an EMPTY system (users `demo.ali`, `demo.vali`); never on a real installation |
 
 ## Docker
 

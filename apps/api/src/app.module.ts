@@ -1,3 +1,4 @@
+import { DemoModule } from './demo/demo.module';
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -39,6 +40,7 @@ import { HealthController } from './health/health.controller';
     FunnelModule,
     KbModule,
     AdminModule,
+    DemoModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

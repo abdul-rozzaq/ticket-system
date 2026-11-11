@@ -14,6 +14,8 @@ export type UserbotCommandType =
   | 'APPLY_FOLDERS';
 
 const SECRET_TYPES = new Set<string>(['LOGIN_SUBMIT_CODE', 'LOGIN_SUBMIT_PASSWORD']);
+/** Safe to run twice: deleting an already deleted message, re-listing dialogs, logging out twice. */
+const RETRIABLE_TYPES = new Set<string>(['DELETE_MESSAGES', 'DISCOVER_DIALOGS', 'LOGOUT']);
 
 /**
  * Commands for the userbot process. The userbot long-polls `claim()` through the API (it has no DB access).
@@ -59,8 +61,44 @@ export class OutboxService {
     }
   }
 
+  private lastSweep = 0;
+
+  /**
+   * Commands a userbot claimed and then died on stay CLAIMED forever. After `staleMs`:
+   * - login commands (their secrets are gone) and request/response commands (the requester gave up long ago) FAIL;
+   * - idempotent ones (delete own command message, discovery, logout) go back to PENDING while they are < 1 h old.
+   * Returns how many commands were touched. Runs at most once a minute (called from claim()).
+   */
+  async sweepStale(staleMs = 5 * 60_000, now = Date.now()): Promise<number> {
+    const cutoff = new Date(now - staleMs);
+    const stuck = await this.prisma.userbotCommand.findMany({
+      where: { status: 'CLAIMED', claimedAt: { lt: cutoff } },
+    });
+    let n = 0;
+    for (const c of stuck) {
+      const retriable = RETRIABLE_TYPES.has(c.type) && now - c.createdAt.getTime() < 3_600_000;
+      if (retriable) {
+        const r = await this.prisma.userbotCommand.updateMany({
+          where: { id: c.id, status: 'CLAIMED' },
+          data: { status: 'PENDING', claimedAt: null },
+        });
+        n += r.count;
+      } else {
+        // goes through complete() so a failed login also resets the session status
+        await this.complete(c.id, false, {}, 'userbot did not finish the command (restarted?)');
+        n++;
+      }
+    }
+    if (n) this.logger.warn(`swept ${n} stale userbot command(s)`);
+    return n;
+  }
+
   /** Atomically hands out pending commands (SKIP LOCKED: two pollers never get the same command). */
   async claim(waitSeconds: number, limit = 10): Promise<UserbotCommand[]> {
+    if (Date.now() - this.lastSweep > 60_000) {
+      this.lastSweep = Date.now();
+      await this.sweepStale().catch((e) => this.logger.warn(`sweep failed: ${String(e).slice(0, 200)}`));
+    }
     const deadline = Date.now() + Math.min(Math.max(waitSeconds, 0), 25) * 1000;
     for (;;) {
       const rows = await this.prisma.$queryRaw<UserbotCommand[]>`

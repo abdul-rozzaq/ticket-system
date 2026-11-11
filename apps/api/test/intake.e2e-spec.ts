@@ -1,6 +1,7 @@
 import type { AiClassification } from '@tp/shared';
 import { adminToken, bearer, createTestApp, TestCtx } from './helpers';
 import { IntakeService } from '../src/intake/intake.service';
+import { OutboxService } from '../src/intake/outbox.service';
 import { DomainEvents } from '../src/events/domain-events';
 
 /** Scriptable stand-in for the AI classifier (the real AiService is covered in ai.e2e-spec.ts). */
@@ -446,6 +447,33 @@ describe('intake pipeline (e2e)', () => {
       expect(
         (await ctx.http().get('/api/v1/telegram/userbot/status').set(bearer(staff[0].token))).status,
       ).toBe(403);
+    });
+
+    it('sweeper: a command claimed by a userbot that died is failed or re-queued after the timeout', async () => {
+      const outbox = ctx.app.get(OutboxService);
+      const old = new Date(Date.now() - 10 * 60_000);
+      const mk = (type: string, extra: object = {}) =>
+        ctx.prisma.userbotCommand.create({
+          data: { type, status: 'CLAIMED', claimedAt: old, createdAt: old, ...extra },
+        });
+      const fresh = await ctx.prisma.userbotCommand.create({
+        data: { type: 'DELETE_MESSAGES', status: 'CLAIMED', claimedAt: new Date() },
+      });
+      const login = await mk('LOGIN_SUBMIT_CODE');
+      const folders = await mk('APPLY_FOLDERS');
+      const del = await mk('DELETE_MESSAGES');
+      const tooOld = await mk('DELETE_MESSAGES', { createdAt: new Date(Date.now() - 3 * 3_600_000) });
+
+      expect(await outbox.sweepStale()).toBe(4);
+
+      const get = (id: string) => ctx.prisma.userbotCommand.findUniqueOrThrow({ where: { id } });
+      expect((await get(fresh.id)).status).toBe('CLAIMED'); // recently claimed: left alone
+      expect((await get(login.id)).status).toBe('FAILED'); // secrets are gone, cannot be retried
+      expect((await get(folders.id)).status).toBe('FAILED'); // the requester gave up long ago
+      expect((await get(del.id)).status).toBe('PENDING'); // idempotent: handed out again
+      expect((await get(tooOld.id)).status).toBe('FAILED'); // but not forever
+      expect(await outbox.sweepStale()).toBe(0); // nothing left to do
+      expect((await status()).status).toBe('LOGIN_FAILED'); // a dead login attempt resets the session status
     });
 
     it('phone -> code -> 2FA password -> session stored encrypted; secrets never rest in the DB', async () => {

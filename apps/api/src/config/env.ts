@@ -20,7 +20,10 @@ export const envSchema = z.object({
   SEED_ADMIN_USERNAME: z.string().default('admin'),
   SEED_ADMIN_PASSWORD: z.string().optional(),
   CORS_ORIGINS: z.string().default('*'),
+  /** Fill an EMPTY system with fictional demo data (never on a real installation). */
   DEMO_MODE: bool.default(false),
+  /** Shared password of the demo staff accounts; required for DEMO_MODE to create anything. Never logged. */
+  DEMO_PASSWORD: z.string().min(10).optional(),
   /** Shared secret for service-to-service calls (userbot, bot). */
   SERVICE_TOKEN: z.string().min(16).optional(),
   /** How often the intake debounce buffers are checked (ms). 0 disables the timer (tests call processDue directly). */

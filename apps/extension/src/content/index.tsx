@@ -1,12 +1,12 @@
 // Content script entry. Everything we render lives in ONE shadow root attached to a fixed,
 // zero-size host element, so Telegram's CSS and ours never collide.
 import { render } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import css from '../ui/styles.css?inline';
 import { bus, useAppState, useBus, type AppState } from '../ui/hooks';
 import { Palette } from '../ui/Palette';
 import type { ChatInfo } from '../shared/types';
-import type { Msg } from '../shared/messages';
+import { api, type Msg } from '../shared/messages';
 import { isInComposer } from '../telegram/composer';
 import { detectVersion, warn } from '../telegram/dom';
 import { chatWatcher, installBridgeServer, localBridge, navigateToChat } from './localBridge';
@@ -15,7 +15,9 @@ import { installActivityPing } from './activity';
 import { InlineTrigger } from './InlineTrigger';
 import { Chips } from './Chips';
 import { MessageHover } from './MessageHover';
-import { Badges } from './badges';
+import { Badges, mockLookup, serverLookup, type OpenChat } from './badges';
+import { useServerStatus } from '../ui/server';
+import { isTicketEvent, onRealtime } from '../ui/rt';
 import { watchTheme } from './theme';
 import { setHealth } from './health';
 
@@ -123,14 +125,49 @@ function Root({ host }: { host: HTMLElement }) {
 
 const badges = new Badges();
 function useBadges(app: AppState | null) {
+  const server = useServerStatus();
+  const connected = !!server?.connected;
+  const [rows, setRows] = useState<OpenChat[]>([]);
+
+  // server mode: open tickets per chat, refreshed every 30 s and whenever the server reports a ticket change
   useEffect(() => {
-    if (!app) return;
-    if (app.settings.flags.F11) badges.start(app.mock);
+    if (!connected) {
+      setRows([]);
+      return;
+    }
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const load = async () => {
+      const r = await api<OpenChat[]>('tickets/open-chats');
+      if (alive && r.ok) setRows(r.data);
+    };
+    void load();
+    const poll = setInterval(load, 30_000);
+    const off = onRealtime((ev) => {
+      if (!isTicketEvent(ev)) return;
+      clearTimeout(timer);
+      timer = setTimeout(load, 500);
+    });
+    return () => {
+      alive = false;
+      clearInterval(poll);
+      clearTimeout(timer);
+      off();
+    };
+  }, [connected]);
+
+  const lookup = useMemo(
+    () => (connected ? serverLookup(rows) : app ? mockLookup(app.mock) : null),
+    [connected, rows, app?.mock],
+  );
+  const on = !!app?.settings.flags.F11 && !!lookup && server !== null;
+  useEffect(() => {
+    if (on && lookup) badges.start(lookup);
     else badges.stop();
-  }, [app?.settings.flags.F11]);
+  }, [on]);
   useEffect(() => {
-    if (app) badges.update(app.mock);
-  }, [app?.mock]);
+    if (lookup) badges.update(lookup);
+  }, [lookup]);
 }
 
 function boot() {

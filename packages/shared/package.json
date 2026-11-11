@@ -24,5 +24,8 @@
   "devDependencies": {
     "tsup": "^9.0.0",
     "vitest": "^5.1.0"
-  }
+  },
+  "files": [
+    "dist"
+  ]
 }

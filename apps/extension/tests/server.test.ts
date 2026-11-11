@@ -179,3 +179,31 @@ describe('small helpers', () => {
     expect(toLocalTemplate({ ...t, bodyRu: null }, 'ru').body).toBe('uz');
   });
 });
+
+describe('chat list badges (server mode)', () => {
+  it('page ids map to the same keys as @tp/shared / the API', async () => {
+    const { pageKeyCandidates } = await import('../src/telegram/peer-key');
+    const { normalizePeerId } = await import('@tp/shared');
+    for (const id of ['-1001234567890', '-1234567890', '-45', '777000', '@some_name', '#-1001234567890']) {
+      const ref = normalizePeerId(id)!;
+      expect(pageKeyCandidates(id)).toContain(ref.key);
+    }
+    expect(pageKeyCandidates('-1001234567890')).toEqual(['c:1234567890', 'x:1234567890']);
+    expect(pageKeyCandidates('-1234567890')).toEqual(['x:1234567890', 'c:1234567890', 'g:1234567890']);
+    expect(pageKeyCandidates('0012')).toEqual(['u:12']);
+    expect(pageKeyCandidates('garbage')).toEqual([]);
+    expect(pageKeyCandidates(null)).toEqual([]);
+  });
+
+  it('serverLookup: by key (WebA and WebK ids), by title fallback, states and no dot for unknown chats', async () => {
+    const { serverLookup } = await import('../src/content/badges');
+    const row = (over: object) => ({ number: 1, status: 'NEW', overdue: false, chatKey: 'c:1234567890', title: 'Alfa Trade | TP', ...over }) as never;
+    const look = serverLookup([row({}), row({ number: 2, chatKey: 'g:55', title: 'Beta', status: 'WAITING_CLIENT' }), row({ number: 3, chatKey: 'c:9', title: 'Gamma', overdue: true, status: 'IN_PROGRESS' })]);
+    expect(look('-1001234567890', '')).toEqual({ state: 'new', label: '#1' }); // WebA
+    expect(look('-1234567890', '')).toEqual({ state: 'new', label: '#1' }); // WebK (ambiguous)
+    expect(look('-55', '')).toEqual({ state: 'waiting', label: '#2' });
+    expect(look(null, 'gamma')).toEqual({ state: 'overdue', label: '#3' }); // title fallback, overdue wins
+    expect(look('-777', 'Nobody')).toBeNull();
+    expect(look(null, '')).toBeNull();
+  });
+});

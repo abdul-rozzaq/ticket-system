@@ -46,6 +46,30 @@ describe('tickets (e2e)', () => {
   const open = (text = 'Webhook ulanmadi') =>
     svc().createTicket({ clientGroupId: groupId, text, senderName: 'Jasur' });
 
+  it('open-chats: one row per open ticket with chat key and overdue flag, no message text; closed tickets are absent', async () => {
+    const t = (await open('Maxfiy matn parol 123')).ticket;
+    const rows = (await ctx.http().get('/api/v1/tickets/open-chats').set(bearer(staff[0].token))).body;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      ticketId: t.id,
+      status: 'NEW',
+      overdue: false,
+      chatKey: 'c:1234567890',
+      company: 'Orient Motors',
+    });
+    expect(JSON.stringify(rows)).not.toContain('Maxfiy');
+    await ctx.prisma.ticket.update({
+      where: { id: t.id },
+      data: { slaDeadline: new Date(Date.now() - 60_000) },
+    });
+    expect(
+      (await ctx.http().get('/api/v1/tickets/open-chats').set(bearer(staff[0].token))).body[0].overdue,
+    ).toBe(true);
+    await ctx.http().post(`/api/v1/tickets/${t.id}/close`).set(bearer(staff[0].token)).send({});
+    expect((await ctx.http().get('/api/v1/tickets/open-chats').set(bearer(staff[0].token))).body).toEqual([]);
+    expect((await ctx.http().get('/api/v1/tickets/open-chats')).status).toBe(401);
+  });
+
   it('normalises chat ids: WebA, WebK and by-chat lookup all find the same group', async () => {
     for (const id of ['-1001234567890', '-1234567890']) {
       const r = await ctx

@@ -16,6 +16,7 @@
     "socket.io-client": "^4.8.4"
   },
   "devDependencies": {
+    "@tp/shared": "workspace:*",
     "@types/chrome": "^0.3.7",
     "jsdom": "^31.0.0",
     "typescript": "^7.0.2",

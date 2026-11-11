@@ -287,6 +287,9 @@ importers:
       ioredis:
         specifier: ^6.0.0
         version: 6.0.0(supports-color@8.1.1)
+      prisma:
+        specifier: ^6.19.3
+        version: 6.19.3(typescript@5.9.3)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -321,9 +324,6 @@ importers:
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@26.6.6)(supports-color@8.1.1)
-      prisma:
-        specifier: ^6.19.3
-        version: 6.19.3(typescript@5.9.3)
       socket.io-client:
         specifier: ^4.8.4
         version: 4.8.4(bufferutil@4.2.0)(supports-color@8.1.1)(utf-8-validate@5.0.10)
@@ -365,6 +365,9 @@ importers:
         specifier: ^4.8.4
         version: 4.8.4(bufferutil@4.2.0)(supports-color@8.1.1)(utf-8-validate@5.0.10)
     devDependencies:
+      '@tp/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@types/chrome':
         specifier: ^0.3.7
         version: 0.3.7

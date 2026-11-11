@@ -5,9 +5,55 @@ import { findClientForChat, currentTicket } from '../logic/tickets';
 import { isOverdue } from '../logic/sla';
 import { debounce, detectVersion, q, qAll, textOf, warn } from '../telegram/dom';
 import { CHAT_LIST_PEER_ATTRS } from '../telegram/selectors';
+import { pageKeyCandidates } from '../telegram/peer-key';
 import { setHealth } from './health';
 
-type BadgeState = 'open' | 'waiting' | 'overdue' | 'new';
+export type BadgeState = 'open' | 'waiting' | 'overdue' | 'new';
+export interface BadgeInfo {
+  state: BadgeState;
+  /** shown in the tooltip after the state text, e.g. the ticket id/number */
+  label: string;
+}
+/** Decides which dot (if any) a chat list row gets. Pure and swappable: mock data or the ticket server. */
+export type BadgeLookup = (peerId: string | null, title: string) => BadgeInfo | null;
+
+/** Mock mode: tickets and clients from chrome.storage. */
+export function mockLookup(mock: MockState): BadgeLookup {
+  return (peerId, title) => {
+    const found = findClientForChat(mock.clients, { chatId: peerId, title });
+    const t = found ? currentTicket(mock.tickets, found.client.id) : null;
+    if (!t || t.status === 'CLOSED') return null;
+    return {
+      state: isOverdue(t) ? 'overdue' : t.status === 'WAITING_CLIENT' ? 'waiting' : t.status === 'NEW' ? 'new' : 'open',
+      label: t.id,
+    };
+  };
+}
+
+/** One row of GET /tickets/open-chats. */
+export interface OpenChat {
+  number: number;
+  status: 'NEW' | 'IN_PROGRESS' | 'WAITING_CLIENT' | 'CLOSED';
+  overdue: boolean;
+  chatKey: string;
+  title: string;
+}
+
+/** Server mode: match by canonical chat key (any key the page id can map to), falling back to the exact title. */
+export function serverLookup(rows: OpenChat[]): BadgeLookup {
+  const byKey = new Map(rows.map((r) => [r.chatKey, r]));
+  const byTitle = new Map(rows.map((r) => [r.title.trim().toLowerCase(), r]));
+  return (peerId, title) => {
+    let row: OpenChat | undefined;
+    for (const k of pageKeyCandidates(peerId)) if ((row = byKey.get(k))) break;
+    row ??= title ? byTitle.get(title.trim().toLowerCase()) : undefined;
+    if (!row || row.status === 'CLOSED') return null;
+    return {
+      state: row.overdue ? 'overdue' : row.status === 'WAITING_CLIENT' ? 'waiting' : row.status === 'NEW' ? 'new' : 'open',
+      label: `#${row.number}`,
+    };
+  };
+}
 const COLORS: Record<BadgeState, string> = { new: '#ff9800', open: '#3390ec', waiting: '#9c27b0', overdue: '#e53935' };
 const TITLES: Record<BadgeState, string> = { new: 'TP: yangi tiket', open: 'TP: ochiq tiket', waiting: 'TP: mijoz kutilmoqda', overdue: "TP: SLA o'tgan" };
 
@@ -24,13 +70,13 @@ function peerIdOf(item: Element): string | null {
 export class Badges {
   private obs: MutationObserver | null = null;
   private list: Element | null = null;
-  private mock: MockState | null = null;
+  private lookup: BadgeLookup | null = null;
   private timer: ReturnType<typeof setInterval> | undefined;
   private enabled = false;
   private run = debounce(() => this.paint(), 300);
 
-  start(mock: MockState) {
-    this.mock = mock;
+  start(lookup: BadgeLookup) {
+    this.lookup = lookup;
     if (this.enabled) return this.run();
     this.enabled = true;
     this.attach();
@@ -38,8 +84,8 @@ export class Badges {
     this.paint();
   }
 
-  update(mock: MockState) {
-    this.mock = mock;
+  update(lookup: BadgeLookup) {
+    this.lookup = lookup;
     if (this.enabled) this.run();
   }
 
@@ -71,7 +117,7 @@ export class Badges {
   }
 
   private paint() {
-    if (!this.enabled || !this.mock) return;
+    if (!this.enabled || !this.lookup) return;
     const t0 = performance.now();
     let painted = 0;
     try {
@@ -80,23 +126,20 @@ export class Badges {
         const id = peerIdOf(item);
         const titleEl = q('chatListItemTitle', item);
         const title = textOf(titleEl);
-        const found = findClientForChat(this.mock.clients, { chatId: id, title });
-        const t = found ? currentTicket(this.mock.tickets, found.client.id) : null;
-        let state: BadgeState | null = null;
-        if (t && t.status !== 'CLOSED') {
-          state = isOverdue(t) ? 'overdue' : t.status === 'WAITING_CLIENT' ? 'waiting' : t.status === 'NEW' ? 'new' : 'open';
-        }
+        const info = this.lookup(id, title);
         const existing = item.querySelector<HTMLElement>('[data-tp-badge]');
-        if (!state) {
+        if (!info) {
           existing?.remove();
           continue;
         }
+        const state = info.state;
         painted++;
-        if (existing?.dataset.tpBadge === state) continue;
+        if (existing?.dataset.tpBadge === state && existing.dataset.tpLabel === info.label) continue;
         const dot = existing ?? document.createElement('span');
         dot.setAttribute('data-tp-badge', state);
+        dot.setAttribute('data-tp-label', info.label);
         dot.setAttribute('data-tp', '1');
-        dot.title = `${TITLES[state]} ${t!.id}`;
+        dot.title = `${TITLES[state]} ${info.label}`;
         dot.style.cssText = `display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 4px;vertical-align:middle;flex:none;background:${COLORS[state]};box-shadow:0 0 0 2px rgba(255,255,255,.6)`;
         if (!existing) (titleEl?.parentElement ?? item).appendChild(dot);
       }
