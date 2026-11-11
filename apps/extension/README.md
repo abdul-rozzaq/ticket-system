@@ -14,7 +14,7 @@ pnpm --filter @tp/extension build      # output: apps/extension/dist
 
 Chrome -> `chrome://extensions` -> Developer mode -> Load unpacked -> choose `apps/extension/dist`.
 Then Options -> "Tiket serveri": API URL (e.g. `http://localhost:3000`), login, password. Chrome asks for permission to reach
-exactly that host. The first login of a new user must be done in the admin panel (forced password change).
+exactly that host.
 
 ## What it does
 

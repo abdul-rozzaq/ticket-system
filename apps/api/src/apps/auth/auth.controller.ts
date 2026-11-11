@@ -6,7 +6,7 @@ import type { User } from '../../common/prisma-client';
 import { changePasswordSchema, loginSchema, refreshSchema } from '@tp/shared';
 import { z } from 'zod';
 import { AuthService, publicUser } from './auth.service';
-import { AllowMustChange, clientCtx, CurrentUser, Public } from './guards';
+import { clientCtx, CurrentUser, Public } from './guards';
 import { ZodPipe } from '../../common/http';
 
 @ApiTags('auth')
@@ -38,14 +38,12 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
-  @AllowMustChange()
   @Get('me')
   me(@CurrentUser() user: User) {
     return publicUser(user);
   }
 
   @ApiBearerAuth()
-  @AllowMustChange()
   @HttpCode(200)
   @Post('change-password')
   changePassword(

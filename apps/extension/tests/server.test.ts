@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createPingThrottle, normalizeBaseUrl, ServerClient, type Deps, type ServerSession } from '../src/server/session';
 
-const user = { id: 'u1', username: 'ali', displayName: 'Ali', role: 'STAFF' as const, mustChangePassword: false };
+const user = { id: 'u1', username: 'ali', displayName: 'Ali', role: 'STAFF' as const };
 const json = (status: number, body: unknown) => new Response(status === 204 ? null : JSON.stringify(body), { status });
 
 function setup(handler: (url: string, init: RequestInit) => Response | Promise<Response>, session: ServerSession | null = null) {
@@ -51,13 +51,6 @@ describe('ServerClient.login', () => {
     const st = await t.client.status();
     expect(st).toEqual({ connected: true, baseUrl: 'https://tp.test', user });
     expect(JSON.stringify(st)).not.toContain('R"');
-  });
-
-  it('does not keep a session when the password must be changed first', async () => {
-    const t = setup(() => json(200, { user: { ...user, mustChangePassword: true }, accessToken: 'A', refreshToken: 'R', expiresIn: 900 }));
-    const r = await t.client.login('https://tp.test', 'ali', 'pw');
-    expect(r).toMatchObject({ ok: false, code: 'MUST_CHANGE_PASSWORD' });
-    expect(t.stored).toBeNull();
   });
 
   it('reports wrong credentials, bad urls and network failures', async () => {

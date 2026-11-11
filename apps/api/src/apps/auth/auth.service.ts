@@ -13,8 +13,6 @@ import { AppError } from '../../common/http';
 export interface AccessPayload {
   sub: string;
   role: Role;
-  /** must-change-password flag at issue time (the guard re-checks the DB, this is informational for clients). */
-  mcp: boolean;
 }
 
 export interface TokenPair {
@@ -34,7 +32,6 @@ export const publicUser = (u: User) => ({
   displayName: u.displayName,
   role: u.role,
   isActive: u.isActive,
-  mustChangePassword: u.mustChangePassword,
   onDuty: u.onDuty,
   available: u.available,
   workingHours: u.workingHours,
@@ -116,7 +113,7 @@ export class AuthService {
   }
 
   private async issue(user: User, familyId: string, ctx: ClientCtx): Promise<TokenPair> {
-    const payload: AccessPayload = { sub: user.id, role: user.role, mcp: user.mustChangePassword };
+    const payload: AccessPayload = { sub: user.id, role: user.role };
     const accessToken = await this.jwt.signAsync(payload, { expiresIn: this.env.ACCESS_TTL_SECONDS });
     const refreshToken = this.crypto.randomToken(32);
     await this.prisma.refreshToken.create({
@@ -200,7 +197,7 @@ export class AuthService {
     }
     const updated = await this.prisma.user.update({
       where: { id: userId },
-      data: { passwordHash: await this.hashPassword(next), mustChangePassword: false },
+      data: { passwordHash: await this.hashPassword(next) },
     });
     await this.revokeAllForUser(userId); // other sessions must log in again
     await this.audit.log({

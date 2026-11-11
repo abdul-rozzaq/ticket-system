@@ -78,7 +78,7 @@ function CreateModal({ open, onClose }: { open: boolean; onClose: () => void }) 
             <option value="ADMIN">{t('role.ADMIN')}</option>
           </Select>
         </Field>
-        <Field label={t('users.password')} hint={t('users.mustChange')}>
+        <Field label={t('users.password')}>
           <Input
             type="password"
             value={f.password}
@@ -260,7 +260,7 @@ function EditModal({
                 reset.mutate();
               }}
             >
-              <Field label={t('users.resetPassword')} hint={t('users.mustChange')}>
+              <Field label={t('users.resetPassword')}>
                 <Input
                   type="password"
                   minLength={10}
@@ -334,7 +334,6 @@ export default function UsersPage() {
                       {u.isActive ? t('common.active') : t('common.inactive')}
                     </Badge>
                     {u.onDuty && <Badge tone="primary">{t('users.onDuty')}</Badge>}
-                    {u.mustChangePassword && <Badge tone="warning">!</Badge>}
                   </Td>
                   <Td>{u.telegramLinked ? t('users.linked') : t('users.notLinked')}</Td>
                   <Td className="whitespace-nowrap text-muted-foreground">{fmtDateTime(u.lastLoginAt)}</Td>

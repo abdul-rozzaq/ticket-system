@@ -7,7 +7,6 @@ export interface ServerUser {
   username: string;
   displayName: string;
   role: 'ADMIN' | 'STAFF';
-  mustChangePassword: boolean;
 }
 
 export interface ServerSession {
@@ -88,10 +87,6 @@ export class ServerClient {
     };
     if (!res.ok || !data.user || !data.accessToken || !data.refreshToken) {
       return { ok: false, code: data.code ?? `HTTP_${res.status}`, error: data.message ?? `Xato (${res.status})` };
-    }
-    if (data.user.mustChangePassword) {
-      // The extension has no password-change screen; the API would reject every other call anyway.
-      return { ok: false, code: 'MUST_CHANGE_PASSWORD', error: "Avval admin panelda parolni o'zgartiring, so'ng qayta kiring" };
     }
     await this.deps.save({
       baseUrl,

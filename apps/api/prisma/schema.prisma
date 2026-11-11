@@ -68,7 +68,6 @@ model User {
   passwordHash       String
   role               Role      @default(STAFF)
   isActive           Boolean   @default(true)
-  mustChangePassword Boolean   @default(false)
   onDuty             Boolean   @default(false)
   /// Staff can toggle /free and /busy in the bot.
   available          Boolean   @default(true)

@@ -64,9 +64,6 @@ export const uz = {
   'login.submit': 'Kirish',
   'login.failed': "Login yoki parol noto'g'ri",
   'login.locked': "Juda ko'p urinish. Birozdan keyin qayta urinib ko'ring",
-  'login.mustChange': "Davom etish uchun parolni o'zgartiring",
-  'login.newPassword': 'Yangi parol (kamida 10 ta belgi)',
-  'login.change': "Parolni o'zgartirish",
   // dashboard
   'dash.title': 'Bosh sahifa',
   'dash.open': 'Ochiq tiketlar',
@@ -210,7 +207,6 @@ export const uz = {
   'users.days': 'Kunlar',
   'users.from': 'Dan',
   'users.to': 'Gacha',
-  'users.mustChange': "Birinchi kirishda parol o'zgartiriladi",
   'users.lastLogin': 'Oxirgi kirish',
   // templates
   'tpl.title': 'Shablonlar',

@@ -9,7 +9,6 @@ const API = process.env.API_URL ?? 'http://localhost:3100';
 const SERVICE_TOKEN = process.env.SERVICE_TOKEN ?? '';
 const ADMIN_USER = process.env.ADMIN_USER ?? 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? '';
-const NEW_PASSWORD = 'Smoke-new-password-1';
 
 const results: Array<[string, boolean, string?]> = [];
 const check = (name: string, ok: boolean, detail?: string) => {
@@ -34,21 +33,11 @@ async function main() {
     error: (m: string) => console.error('error:', m),
   };
   // --- admin session
-  const first = await http<{ accessToken: string; user: { mustChangePassword: boolean } }>(
-    'POST',
-    '/auth/login',
-    undefined,
-    { username: ADMIN_USER, password: ADMIN_PASSWORD },
-  );
-  let admin = first.accessToken;
-  if (first.user.mustChangePassword) {
-    admin = (
-      await http<{ accessToken: string }>('POST', '/auth/change-password', admin, {
-        currentPassword: ADMIN_PASSWORD,
-        newPassword: NEW_PASSWORD,
-      })
-    ).accessToken;
-  }
+  const first = await http<{ accessToken: string }>('POST', '/auth/login', undefined, {
+    username: ADMIN_USER,
+    password: ADMIN_PASSWORD,
+  });
+  const admin = first.accessToken;
   const me = await http<{ id: string }>('GET', '/auth/me', admin);
   await http('PATCH', `/users/${me.id}`, admin, { available: false });
 

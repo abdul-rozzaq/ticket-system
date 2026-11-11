@@ -39,11 +39,10 @@ export class UsersService implements OnApplicationBootstrap {
         displayName: 'Admin',
         role: 'ADMIN',
         passwordHash: await this.auth.hashPassword(password),
-        mustChangePassword: true,
       },
     });
     this.logger.log(
-      `Seeded admin "${this.env.SEED_ADMIN_USERNAME}" (password change required at first login).`,
+      `Seeded admin "${this.env.SEED_ADMIN_USERNAME}" (change it in the panel when convenient).`,
     );
   }
 
@@ -60,7 +59,6 @@ export class UsersService implements OnApplicationBootstrap {
           displayName: input.displayName,
           role: input.role,
           passwordHash: await this.auth.hashPassword(input.password),
-          mustChangePassword: true,
           workingHours: input.workingHours as Prisma.InputJsonValue | undefined,
         },
       });
@@ -114,7 +112,7 @@ export class UsersService implements OnApplicationBootstrap {
     if (!existing) throw new AppError(HttpStatus.NOT_FOUND, 'NOT_FOUND', 'Foydalanuvchi topilmadi');
     await this.prisma.user.update({
       where: { id },
-      data: { passwordHash: await this.auth.hashPassword(newPassword), mustChangePassword: true },
+      data: { passwordHash: await this.auth.hashPassword(newPassword) },
     });
     await this.auth.revokeAllForUser(id);
     await this.audit.log({ actorId, action: 'user.reset_password', entity: 'User', entityId: id });

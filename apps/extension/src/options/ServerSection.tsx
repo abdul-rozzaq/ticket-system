@@ -64,7 +64,7 @@ export function ServerSection() {
         </div>
       ) : (
         <form class="tp-col" onSubmit={login}>
-          <div class="tp-small tp-muted">Ulanmagan: panel ishlamaydi. Login admin panelda yaratiladi; birinchi kirishdan oldin parolni admin panelda o'zgartiring.</div>
+          <div class="tp-small tp-muted">Ulanmagan: panel ishlamaydi. Login admin panelda yaratiladi.</div>
           <label>Server manzili <input class="tp-mono" value={url} onInput={(e) => setUrl((e.target as HTMLInputElement).value)} required /></label>
           <label>Login <input value={username} autoComplete="username" onInput={(e) => setUsername((e.target as HTMLInputElement).value)} required /></label>
           <label>Parol <input type="password" value={password} autoComplete="current-password" onInput={(e) => setPassword((e.target as HTMLInputElement).value)} required /></label>

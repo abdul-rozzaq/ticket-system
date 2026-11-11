@@ -38,7 +38,7 @@ flowchart LR
 | AI provider and keys exist only on the server    | keys are encrypted (AES-256-GCM) in `AiProvider`, returned only as a last-4 hint; extension has no AI settings in server mode                              |
 | Secrets are masked before any AI call            | `mask.ts` (shared) is applied in classification, drafts and KB growth; drafts return the masked preview                                                    |
 | One open ticket per group, one assignee          | partial unique index; assignment is `UPDATE ... WHERE assigneeId IS NULL` (row count decides the winner)                                                   |
-| No self-registration                             | users are created by admins only; first admin seeded from env and forced to change the password                                                            |
+| No self-registration                             | users are created by admins only; first admin seeded from env                                                                                              |
 | Telegram/AI failures must not stop the workflow  | classification fails open (ticket is created, `needsReview`), drafts fall back to extractive, outbox items retry, folder sync degrades with warnings       |
 
 ## 3. Main flows

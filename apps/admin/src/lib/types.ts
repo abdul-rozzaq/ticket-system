@@ -8,7 +8,6 @@ export interface Me {
   displayName: string;
   role: Role;
   isActive: boolean;
-  mustChangePassword: boolean;
   onDuty: boolean;
   available: boolean;
   workingHours: unknown;

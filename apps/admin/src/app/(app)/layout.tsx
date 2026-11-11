@@ -70,8 +70,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const blocked =
     !!me.data && me.data.role !== 'ADMIN' && NAV.some((n) => n.admin && path.startsWith(n.href));
   React.useEffect(() => {
-    if (me.data?.mustChangePassword) router.replace('/login');
-    else if (blocked) router.replace('/dashboard');
+    if (blocked) router.replace('/dashboard');
   }, [me.data, blocked, router]);
 
   if (me.isLoading || !me.data || blocked) return <Spinner />; // 401 → api.ts redirects to /login

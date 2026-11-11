@@ -52,7 +52,7 @@ Run the API (set `JWT_SECRET` ≥ 32 chars, `ENCRYPTION_KEY` = `openssl rand -ba
 pnpm --filter @tp/api dev
 ```
 
-Swagger: `http://localhost:3000/docs`. The seeded admin must change its password at first login.
+Swagger: `http://localhost:3000/docs`. The seeded admin can log in right away (there is no forced password change: this is an internal system and admins may know staff passwords). Use a strong `SEED_ADMIN_PASSWORD` anyway.
 
 Architecture overview: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Progress: [docs/PROGRESS.md](docs/PROGRESS.md).
 

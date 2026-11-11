@@ -16,14 +16,11 @@ import { AppError } from '../../common/http';
 
 export const PUBLIC_KEY = 'tp:public';
 export const ROLES_KEY = 'tp:roles';
-export const ALLOW_MUST_CHANGE_KEY = 'tp:allowMustChange';
 
 /** Route needs no authentication. */
 export const Public = () => SetMetadata(PUBLIC_KEY, true);
 /** Route requires one of the given roles. */
 export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
-/** Route stays reachable while the account still has to change its password. */
-export const AllowMustChange = () => SetMetadata(ALLOW_MUST_CHANGE_KEY, true);
 
 export type AuthedRequest = Request & { user: User; correlationId?: string };
 
@@ -67,13 +64,6 @@ export class JwtAuthGuard implements CanActivate {
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user || !user.isActive) throw unauthorized();
     req.user = user;
-
-    if (
-      user.mustChangePassword &&
-      !this.reflector.getAllAndOverride<boolean>(ALLOW_MUST_CHANGE_KEY, targets)
-    ) {
-      throw new AppError(HttpStatus.FORBIDDEN, 'MUST_CHANGE_PASSWORD', t('auth.mustChangePassword'));
-    }
 
     const roles = this.reflector.getAllAndOverride<Role[] | undefined>(ROLES_KEY, targets);
     if (roles?.length && !roles.includes(user.role)) {

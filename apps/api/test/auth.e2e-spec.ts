@@ -36,14 +36,11 @@ describe('auth + users (e2e)', () => {
     expect(r.body.code).toBe('VALIDATION');
   });
 
-  it('forces the seeded admin to change the password before anything else works', async () => {
+  it('the seeded admin works right away; changing the password is optional', async () => {
     const l = await ctx.login(ADMIN.username, ADMIN.password);
     expect(l.status).toBe(200);
-    expect(l.body.user.mustChangePassword).toBe(true);
-
-    const blocked = await ctx.http().get('/api/v1/users').set(bearer(l.accessToken));
-    expect(blocked.status).toBe(403);
-    expect(blocked.body.code).toBe('MUST_CHANGE_PASSWORD');
+    expect(l.body.user.mustChangePassword).toBeUndefined(); // no forced change any more
+    expect((await ctx.http().get('/api/v1/users').set(bearer(l.accessToken))).status).toBe(200);
     expect((await ctx.http().get('/api/v1/auth/me').set(bearer(l.accessToken))).status).toBe(200);
 
     const weak = await ctx
@@ -128,7 +125,7 @@ describe('auth + users (e2e)', () => {
     expect(created.status).toBe(201);
     expect(created.body.username).toBe('ali');
     expect(created.body.passwordHash).toBeUndefined();
-    expect(created.body.mustChangePassword).toBe(true);
+    expect(created.body.mustChangePassword).toBeUndefined();
 
     const dup = await ctx
       .http()
@@ -137,7 +134,7 @@ describe('auth + users (e2e)', () => {
       .send({ username: 'ali', displayName: 'x', password: 'Temp-password-1' });
     expect(dup.status).toBe(409);
 
-    // staff logs in, must change the password, then is still forbidden from admin routes
+    // staff logs in with the admin-given password and may change it; either way admin routes stay forbidden
     const s = await ctx.login('ali', 'Temp-password-1');
     const changed = await ctx
       .http()
@@ -156,7 +153,7 @@ describe('auth + users (e2e)', () => {
     expect((await ctx.http().get('/api/v1/auth/me').set(bearer(changed.body.accessToken))).status).toBe(401);
     expect((await ctx.login('ali', 'Staff-new-pass-1')).status).toBe(401);
 
-    // admin reset puts the user back into forced-change state
+    // admin reset: the new password works immediately, nothing forces another change
     await ctx.http().patch(`/api/v1/users/${id}`).set(bearer(admin)).send({ isActive: true });
     expect(
       (
@@ -168,7 +165,9 @@ describe('auth + users (e2e)', () => {
       ).status,
     ).toBe(204);
     const again = await ctx.login('ali', 'Reset-pass-12345');
-    expect(again.body.user.mustChangePassword).toBe(true);
+    expect(again.status).toBe(200);
+    expect(again.body.user.mustChangePassword).toBeUndefined();
+    expect((await ctx.http().get('/api/v1/auth/me').set(bearer(again.accessToken))).status).toBe(200);
   });
 
   it('refuses to let an admin lock themselves out', async () => {

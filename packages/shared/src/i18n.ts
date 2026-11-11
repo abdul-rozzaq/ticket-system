@@ -7,7 +7,6 @@ const uz = {
   'auth.locked': "Juda ko'p urinish. Birozdan keyin qayta urinib ko'ring",
   'auth.inactive': 'Foydalanuvchi faol emas',
   'auth.forbidden': "Bu amal uchun ruxsat yo'q",
-  'auth.mustChangePassword': "Davom etish uchun parolni o'zgartiring",
   'auth.weakPassword': "Parol kamida 10 ta belgidan iborat bo'lishi kerak",
   'ticket.new': 'Yangi tiket',
   'ticket.taken': '✅ {name} tomonidan olindi',
